@@ -83,6 +83,7 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER_STRUCT_INCLUDE(FCommonShaderParameters, CommonParameters)
+		SHADER_PARAMETER_RDG_UNIFORM_BUFFER(FSceneTextureUniformParameters, SceneTextures)
 		SHADER_PARAMETER(FIntRect, ViewportRect)
 #if ENGINE_MAJOR_VERSION == 5
 		SHADER_PARAMETER(FVector2f, SceneColorBufferInvSize)

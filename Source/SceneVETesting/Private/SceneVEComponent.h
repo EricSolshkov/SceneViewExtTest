@@ -30,11 +30,13 @@ public:
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override {};
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {};
 	virtual void SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled);
+	void SetEnabled(const bool NewEnabled) { this->Enabled = NewEnabled; UE_LOG(LogTemp, Log, TEXT("set to %sabled"), this->Enabled?"en":"dis");}
 
 	// This is our actual hook function
 	FScreenPassTexture TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& InOutInputs);
 
 private:
+	bool Enabled;
 
 };
 
@@ -48,6 +50,9 @@ class SCENEVETESTING_API USceneVEComponent : public UActorComponent
 public:
 	USceneVEComponent(const FObjectInitializer& ObjectInitializer);
 
+	UFUNCTION(BlueprintCallable)
+	void SetEnabled(const bool Enabled) { if(TestSceneExtension) this->TestSceneExtension->SetEnabled(Enabled); }
+	
 protected:
 	virtual void BeginPlay() override;
 	void CreateSceneViewExtension();

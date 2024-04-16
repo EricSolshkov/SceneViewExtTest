@@ -15,7 +15,7 @@ namespace
 {
 	TAutoConsoleVariable<int32> CVarShaderSelector(
 		TEXT("r.SceneVETest.Shader"),
-		0,
+		1,
 		TEXT("Select shader to use in the post processing \n")
 		TEXT(" 0: Vertex & Pixel Shader (default);")
 		TEXT(" 1: Computer Shader."),
@@ -204,6 +204,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 
 			// Input is the SceneColor from PostProcess Material Inputs
 			PassParameters->OriginalSceneColor = SceneColor.Texture;
+			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
 
 			// There are other ways to obtain this information, but for a reference this is a hack to make a FViewInfo from the SceneView that can be very useful
 			checkSlow(SceneView->bIsViewInfo);
