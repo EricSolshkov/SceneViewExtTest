@@ -10,6 +10,7 @@
 FTestSceneExtension::FTestSceneExtension(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
 {
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Autoregister"));
+	this->Enabled = false;
 }
 
 void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
@@ -21,16 +22,18 @@ void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 
 void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled)
 {
-
+	if(!this->Enabled) return;
+	
 	if (PassId == EPostProcessingPass::MotionBlur)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is MotionBlur!"));
-		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
+		
 	}
 
 	if (PassId == EPostProcessingPass::Tonemap)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is Tonemap!"));
+		
 	}
 
 	if (PassId == EPostProcessingPass::FXAA)
@@ -42,6 +45,7 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 	if (PassId == EPostProcessingPass::VisualizeDepthOfField)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is VisualizeDepthOfField!"));
+		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
 	}
 
 	if (PassId == EPostProcessingPass::MAX)
