@@ -75,6 +75,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
 	const ERHIFeatureLevel::Type FeatureLevel = SceneView.GetFeatureLevel();
+	const FMatrix ClipToWorld = SceneView.ViewMatrices.GetViewProjectionMatrix().Inverse();
 
 	const FScreenPassTexture& SceneColor = Inputs.Textures[(uint32)EPostProcessMaterialInput::SceneColor];
 
@@ -203,11 +204,12 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSceneVETestShaderCS::FParameters>();
 
 			// Input is the SceneColor from PostProcess Material Inputs
+			PassParameters->ClipToWorld = ClipToWorld;
 			PassParameters->OriginalSceneColor = SceneColor.Texture;
 			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
 
 			// There are other ways to obtain this information, but for a reference this is a hack to make a FViewInfo from the SceneView that can be very useful
-			checkSlow(SceneView->bIsViewInfo);
+			checkSlow(SceneView.bIsViewInfo);
 			const FViewInfo* View = (FViewInfo*)&SceneView;
 
 			// Important! There are many places where UE sets and scales viewport resolution = what kind of scaling you might need to apply to get

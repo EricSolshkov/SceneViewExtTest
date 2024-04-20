@@ -13,6 +13,7 @@
 #define GROUP_BORDER_SIZE (DEFAULT_GROUP_BORDER_SIZE)
 
 // Parameters
+float4x4 ClipToWorld;
 Texture2D OriginalSceneColor;
 uint4 ViewportRect;
 
@@ -55,16 +56,19 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		SceneTexturesStruct.SceneDepthTexture.SampleLevel(GlobalPointClampedSampler, sampleUV, 0),
 		true, true
 		);
-	
 
     // sample OriginalColor
     float4 OriginalColor = OriginalSceneColor.SampleLevel(GlobalPointClampedSampler, sampleUV, 0);
-    // switch Red and blue
-    float4 OutputColor = float4(OriginalColor.z, OriginalColor.y, OriginalColor.x, OriginalColor.w);
+
+	// calc world position
+	float2 InvYUV = float2(sampleUV.x, 1 - sampleUV.y);
+	float2 CenterUV = InvYUV * 2.0f - 1.0f;
+	float LinearDepth = 0.02f / GBuffer.Depth - 1.0f;
+	float4 HomoWorldPosition = mul(float4(CenterUV, LinearDepth, 1.0), transpose(ClipToWorld));
 
     // Write output
-    Output[View.ViewRectMin.xy + DispatchThreadId] = float4(GBuffer.WorldNormal, 1);
-    //Output[View.ViewRectMin.xy + DispatchThreadId] = OutputColor; 
+    //Output[View.ViewRectMin.xy + DispatchThreadId] = float4(CenterUV, 0.01 / GBuffer.Depth, 1.0);
+    Output[View.ViewRectMin.xy + DispatchThreadId] = HomoWorldPosition / HomoWorldPosition.a;
 
 }
 

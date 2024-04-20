@@ -90,6 +90,7 @@ public:
 #else
 		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
 #endif
+		SHADER_PARAMETER(FMatrix, ClipToWorld)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, OriginalSceneColor)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, Output)
 	END_SHADER_PARAMETER_STRUCT()
