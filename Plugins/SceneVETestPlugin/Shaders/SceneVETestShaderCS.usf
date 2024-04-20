@@ -13,7 +13,9 @@
 #define GROUP_BORDER_SIZE (DEFAULT_GROUP_BORDER_SIZE)
 
 // Parameters
-float4x4 ClipToWorld;
+float4x4 ViewToWorld;
+float tanhalf;
+float4 InvDeviceZToWorldZTransform;
 Texture2D OriginalSceneColor;
 uint4 ViewportRect;
 
@@ -24,6 +26,13 @@ RWTexture2D<float4> Output;
 
 // Reference method parameter
 //float UVScale;
+
+// Utilities
+float ConvertFromDvcZ(float DeviceZ)
+{
+	// Supports ortho and perspective, see CreateInvDeviceZToWorldZTransform()
+	return DeviceZ * InvDeviceZToWorldZTransform[0] + InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * InvDeviceZToWorldZTransform[2] - InvDeviceZToWorldZTransform[3]);
+}
 
 // Compute Shader code
 [numthreads(GROUP_BORDER_SIZE, GROUP_BORDER_SIZE, 1)]
@@ -63,12 +72,16 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	// calc world position
 	float2 InvYUV = float2(sampleUV.x, 1 - sampleUV.y);
 	float2 CenterUV = InvYUV * 2.0f - 1.0f;
-	float LinearDepth = 0.02f / GBuffer.Depth - 1.0f;
-	float4 HomoWorldPosition = mul(float4(CenterUV, LinearDepth, 1.0), transpose(ClipToWorld));
+	float LinearDepth = ConvertFromDeviceZ(GBuffer.Depth) / 100.0f;
+	float R = (float)ViewportRect.z / (float)ViewportRect.w;
+	float4 ViewSpacePositionUEOrder = float4(2 * R * tanhalf * CenterUV.x, 2 * tanhalf * CenterUV.y, LinearDepth, 1.0f);
+	float4 HomoWorldPositionUEOrder = mul(ViewToWorld, ViewSpacePositionUEOrder);
+	float4 HomoWorldPosition = float4(HomoWorldPositionUEOrder.y, HomoWorldPositionUEOrder.z, HomoWorldPositionUEOrder.x, HomoWorldPositionUEOrder.w);
 
     // Write output
-    //Output[View.ViewRectMin.xy + DispatchThreadId] = float4(CenterUV, 0.01 / GBuffer.Depth, 1.0);
-    Output[View.ViewRectMin.xy + DispatchThreadId] = HomoWorldPosition / HomoWorldPosition.a;
+    //Output[View.ViewRectMin.xy + DispatchThreadId] = float4(LinearDepth, LinearDepth, LinearDepth, 1.0);
+	//Output[View.ViewRectMin.xy + DispatchThreadId] = ViewSpacePositionUEOrder;
+    Output[View.ViewRectMin.xy + DispatchThreadId] = HomoWorldPosition / (HomoWorldPosition.w);
 
 }
 
