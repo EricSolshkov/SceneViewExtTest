@@ -70,17 +70,11 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
     float4 OriginalColor = OriginalSceneColor.SampleLevel(GlobalPointClampedSampler, sampleUV, 0);
 
 	// calc world position
-	float2 InvYUV = float2(sampleUV.x, 1 - sampleUV.y);
-	float2 CenterUV = InvYUV * 2.0f - 1.0f;
-	float LinearDepth = ConvertFromDeviceZ(GBuffer.Depth) / 100.0f;
-	float R = (float)ViewportRect.z / (float)ViewportRect.w;
-	float4 ViewSpacePositionUEOrder = float4(2 * R * tanhalf * CenterUV.x, 2 * tanhalf * CenterUV.y, LinearDepth, 1.0f);
-	float4 HomoWorldPositionUEOrder = mul(ViewToWorld, ViewSpacePositionUEOrder);
+	float4 HomoWorldPositionUEOrder = float4(SvPositionToWorld(float4(DispatchThreadId, GBuffer.Depth, 1.0f)), 1.0f);
+	
 	float4 HomoWorldPosition = float4(HomoWorldPositionUEOrder.y, HomoWorldPositionUEOrder.z, HomoWorldPositionUEOrder.x, HomoWorldPositionUEOrder.w);
 
     // Write output
-    //Output[View.ViewRectMin.xy + DispatchThreadId] = float4(LinearDepth, LinearDepth, LinearDepth, 1.0);
-	//Output[View.ViewRectMin.xy + DispatchThreadId] = ViewSpacePositionUEOrder;
     Output[View.ViewRectMin.xy + DispatchThreadId] = HomoWorldPosition / (HomoWorldPosition.w);
 
 }
