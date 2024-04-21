@@ -13,10 +13,7 @@
 #define GROUP_BORDER_SIZE (DEFAULT_GROUP_BORDER_SIZE)
 
 // Parameters
-float4x4 ViewToWorld;
-float tanhalf;
-float4 InvDeviceZToWorldZTransform;
-Texture2D OriginalSceneColor;
+float3 HeatResourceCenter;
 uint4 ViewportRect;
 
 // We should be able to use View.BufferSizeAndInvSize here, but currently it is not possible/easy to get consistent results due to different scaling applications
@@ -26,13 +23,6 @@ RWTexture2D<float4> Output;
 
 // Reference method parameter
 //float UVScale;
-
-// Utilities
-float ConvertFromDvcZ(float DeviceZ)
-{
-	// Supports ortho and perspective, see CreateInvDeviceZToWorldZTransform()
-	return DeviceZ * InvDeviceZToWorldZTransform[0] + InvDeviceZToWorldZTransform[1] + 1.0f / (DeviceZ * InvDeviceZToWorldZTransform[2] - InvDeviceZToWorldZTransform[3]);
-}
 
 // Compute Shader code
 [numthreads(GROUP_BORDER_SIZE, GROUP_BORDER_SIZE, 1)]
@@ -66,16 +56,12 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		true, true
 		);
 
-    // sample OriginalColor
-    float4 OriginalColor = OriginalSceneColor.SampleLevel(GlobalPointClampedSampler, sampleUV, 0);
-
-	// calc world position
-	float4 HomoWorldPositionUEOrder = float4(SvPositionToWorld(float4(DispatchThreadId, GBuffer.Depth, 1.0f)), 1.0f);
-	
-	float4 HomoWorldPosition = float4(HomoWorldPositionUEOrder.y, HomoWorldPositionUEOrder.z, HomoWorldPositionUEOrder.x, HomoWorldPositionUEOrder.w);
+	// Calc world position
+	float4 SvPosition = float4(DispatchThreadId, GBuffer.Depth, 1.0f);
+	float4 AbsoluteWorldPosition = float4(SvPositionToWorld(SvPosition), 1.0f);
 
     // Write output
-    Output[View.ViewRectMin.xy + DispatchThreadId] = HomoWorldPosition / (HomoWorldPosition.w);
+    Output[View.ViewRectMin.xy + DispatchThreadId] = AbsoluteWorldPosition;
 
 }
 
