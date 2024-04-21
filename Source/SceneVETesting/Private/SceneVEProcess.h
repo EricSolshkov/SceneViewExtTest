@@ -91,10 +91,7 @@ public:
 #else
 		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
 #endif
-		SHADER_PARAMETER(FMatrix, ViewToWorld)
-		SHADER_PARAMETER(FVector4, InvDeviceZToWorldZTransform)
-		SHADER_PARAMETER(float, tanhalf)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, OriginalSceneColor)
+		SHADER_PARAMETER(FVector, HeatResourceCenter)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, Output)
 	END_SHADER_PARAMETER_STRUCT()
 

@@ -75,7 +75,6 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
 	const ERHIFeatureLevel::Type FeatureLevel = SceneView.GetFeatureLevel();
-	const FMatrix ViewMatrix = SceneView.ViewMatrices.GetViewMatrix();
 
 	const FScreenPassTexture& SceneColor = Inputs.Textures[(uint32)EPostProcessMaterialInput::SceneColor];
 
@@ -204,11 +203,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSceneVETestShaderCS::FParameters>();
 
 			// Input is the SceneColor from PostProcess Material Inputs
-			PassParameters->ViewToWorld = ViewMatrix.Inverse();
-			PassParameters->tanhalf = tan(SceneView.FOV/2);
-			PassParameters->InvDeviceZToWorldZTransform = SceneView.InvDeviceZToWorldZTransform;
-			// PassParameters->ClipToWorld = (Projection * ViewMatrix).Inverse();
-			PassParameters->OriginalSceneColor = SceneColor.Texture;
+			PassParameters->HeatResourceCenter = FVector(0,0,0);
 			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
 
 			// There are other ways to obtain this information, but for a reference this is a hack to make a FViewInfo from the SceneView that can be very useful
