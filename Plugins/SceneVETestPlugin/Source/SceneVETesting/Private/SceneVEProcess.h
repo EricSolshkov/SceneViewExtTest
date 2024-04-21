@@ -18,7 +18,6 @@
 BEGIN_SHADER_PARAMETER_STRUCT(FSceneVETestShaderParameters, )
 	SHADER_PARAMETER_RDG_TEXTURE(Texture2D, InputTexture)
 	SHADER_PARAMETER_SAMPLER(SamplerState, InputSampler)
-	SHADER_PARAMETER(FMatrix, WorldToCLip)
 	RENDER_TARGET_BINDING_SLOTS()
 END_SHADER_PARAMETER_STRUCT()
 
@@ -75,6 +74,17 @@ BEGIN_SHADER_PARAMETER_STRUCT(FCommonShaderParameters, )
 	SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, ViewUniformBuffer)
 END_SHADER_PARAMETER_STRUCT()
 
+struct FHeatResource
+{
+	FVector Center;
+	float Radius;
+public:
+	FHeatResource(const FVector& iCenter, float iRadius)
+	{
+		Center = iCenter;
+		Radius = iRadius;
+	}
+};
 
 class SCENEVETESTING_API FSceneVETestShaderCS : public FGlobalShader
 {
@@ -89,9 +99,11 @@ public:
 #if ENGINE_MAJOR_VERSION == 5
 		SHADER_PARAMETER(FVector2f, SceneColorBufferInvSize)
 #else
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FHeatResource>, HeatResources)
+		SHADER_PARAMETER(uint32, HeatResourceCount)
 		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
 #endif
-		SHADER_PARAMETER(FVector, HeatResourceCenter)
+		
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, Output)
 	END_SHADER_PARAMETER_STRUCT()
 

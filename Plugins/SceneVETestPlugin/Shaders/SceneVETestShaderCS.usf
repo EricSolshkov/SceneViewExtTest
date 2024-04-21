@@ -12,9 +12,18 @@
 #define DEFAULT_GROUP_BORDER_SIZE 8
 #define GROUP_BORDER_SIZE (DEFAULT_GROUP_BORDER_SIZE)
 
+
+// HeatResource Struct Difinition
+struct FHeatResource
+{
+	float3 Center;
+	float Radius;
+};
+
 // Parameters
-float3 HeatResourceCenter;
 uint4 ViewportRect;
+StructuredBuffer<FHeatResource> HeatResources;
+uint HeatResourceCount;
 
 // We should be able to use View.BufferSizeAndInvSize here, but currently it is not possible/easy to get consistent results due to different scaling applications
 float2 SceneColorBufferInvSize;
@@ -60,8 +69,20 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	float4 SvPosition = float4(DispatchThreadId, GBuffer.Depth, 1.0f);
 	float4 AbsoluteWorldPosition = float4(SvPositionToWorld(SvPosition), 1.0f);
 
+	float RadianceBonus = 0;
+	for(int i = 0; i < 1; i++)
+	{
+		// float3 Vec2Hit = AbsoluteWorldPosition.xyz - HeatResources[i].Center;
+		float3 Vec2Hit = AbsoluteWorldPosition.xyz - float3(0,0,0);
+		float3 Local1 = dot(Vec2Hit, Vec2Hit);
+		float3 Dist2Hit = sqrt(Local1);
+		float3 Dist2HitScaled = (Dist2Hit / HeatResources[i].Radius);
+		float3 Local4 = (1.00000000 - Dist2HitScaled);
+		float3 Local5 = (Local4 * 1.00000000);
+		RadianceBonus += min(max(Local5,0.00000000),1.00000000);
+	}
     // Write output
-    Output[View.ViewRectMin.xy + DispatchThreadId] = AbsoluteWorldPosition;
+    Output[View.ViewRectMin.xy + DispatchThreadId] = float4(AbsoluteWorldPosition.xyz / 256 + RadianceBonus, 1);
 
 }
 

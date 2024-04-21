@@ -4,6 +4,7 @@
 // SceneVEProcess.cpp - Actual RDG hook and Shader Loading
 
 #include "SceneVEProcess.h"
+#include "RenderGraphUtils.h"
 
 // Shader implementation Macro doesn't work on .h file so load them here
 IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderPS, "/Plugins/SceneVETestPlugin/SceneVETestShaderPS.usf", "MainPS", SF_Pixel);    // point to the shader  file, name of the main function in shader.usf
@@ -203,7 +204,6 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSceneVETestShaderCS::FParameters>();
 
 			// Input is the SceneColor from PostProcess Material Inputs
-			PassParameters->HeatResourceCenter = FVector(0,0,0);
 			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
 
 			// There are other ways to obtain this information, but for a reference this is a hack to make a FViewInfo from the SceneView that can be very useful
@@ -242,6 +242,33 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 
 			// Create UAV from Target Texture
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(templateRenderTargetTexture));
+
+			// Create Structured Buffer for HeatResources
+			uint32 Count = 16;
+			uint32 BufferSize = Count * sizeof(FHeatResource);
+			// Temperary Array Initializing;
+			TArray<FHeatResource> HeatResources;
+			FHeatResource Hr = FHeatResource(FVector::ZeroVector, 256);
+			HeatResources.Init(Hr, Count);
+			for (auto& hr : HeatResources)
+			{
+				hr.Center = FVector(
+					FMath::RandRange(-10000.0f, 10000.0f),
+					FMath::RandRange(-10000.0f, 10000.0f),
+					FMath::RandRange(-10000.0f, 10000.0f));
+			}
+			FRDGBufferRef HeatResourceRDGRef = CreateStructuredBuffer(
+				GraphBuilder,
+				TEXT("HeatResources"),
+				sizeof(FHeatResource),
+				Count,
+				HeatResources.GetData(),
+				BufferSize,
+				ERDGInitialDataFlags::NoCopy
+				);
+			auto HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
+			PassParameters->HeatResourceCount = Count;
+			PassParameters->HeatResources = HeatResourcesSRV;
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;
