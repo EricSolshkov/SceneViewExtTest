@@ -13,11 +13,12 @@
 #define GROUP_BORDER_SIZE (DEFAULT_GROUP_BORDER_SIZE)
 
 
-// HeatResource Struct Difinition
+// HeatResource Struct Definition
 struct FHeatResource
 {
 	float3 Center;
 	float Radius;
+	float3 Color;
 };
 
 // Parameters
@@ -69,20 +70,24 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	float4 SvPosition = float4(DispatchThreadId, GBuffer.Depth, 1.0f);
 	float4 AbsoluteWorldPosition = float4(SvPositionToWorld(SvPosition), 1.0f);
 
-	float RadianceBonus = 0;
-	for(int i = 0; i < 1; i++)
+	float3 RadianceBonus = float3(0,0,0);
+	
+	for(int i = 0; i < HeatResourceCount; i++)
 	{
-		// float3 Vec2Hit = AbsoluteWorldPosition.xyz - HeatResources[i].Center;
-		float3 Vec2Hit = AbsoluteWorldPosition.xyz - float3(0,0,0);
+		float3 Vec2Hit = AbsoluteWorldPosition.xyz - HeatResources[i].Center;
 		float3 Local1 = dot(Vec2Hit, Vec2Hit);
 		float3 Dist2Hit = sqrt(Local1);
 		float3 Dist2HitScaled = (Dist2Hit / HeatResources[i].Radius);
 		float3 Local4 = (1.00000000 - Dist2HitScaled);
 		float3 Local5 = (Local4 * 1.00000000);
-		RadianceBonus += min(max(Local5,0.00000000),1.00000000);
+		//RadianceBonus += 256 * min(max(Local5,0.00000000),1.00000000);
+		RadianceBonus += HeatResources[i].Color * min(max(Local5,0.00000000),1.00000000);
 	}
     // Write output
-    Output[View.ViewRectMin.xy + DispatchThreadId] = float4(AbsoluteWorldPosition.xyz / 256 + RadianceBonus, 1);
+    //Output[View.ViewRectMin.xy + DispatchThreadId] = float4(RadianceBonus, RadianceBonus, RadianceBonus, 1);
+	float3 outColor = min(max(GBuffer.BaseColor.rgb + RadianceBonus,0.00000000),1.00000000);
+    Output[View.ViewRectMin.xy + DispatchThreadId] = float4(outColor, 1);
+    
 
 }
 

@@ -74,18 +74,6 @@ BEGIN_SHADER_PARAMETER_STRUCT(FCommonShaderParameters, )
 	SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, ViewUniformBuffer)
 END_SHADER_PARAMETER_STRUCT()
 
-struct FHeatResource
-{
-	FVector Center;
-	float Radius;
-public:
-	FHeatResource(const FVector& iCenter, float iRadius)
-	{
-		Center = iCenter;
-		Radius = iRadius;
-	}
-};
-
 class SCENEVETESTING_API FSceneVETestShaderCS : public FGlobalShader
 {
 public:
@@ -115,12 +103,11 @@ public:
 
 };
 
-
 class FSceneVEProcess
 {
 public:
 	// Hook to the SceneViewExtension Base
-	static FScreenPassTexture AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& Inputs);
+	static FScreenPassTexture AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& Inputs, const TArray<FHeatResource> HeatResources);
 
 private:
 

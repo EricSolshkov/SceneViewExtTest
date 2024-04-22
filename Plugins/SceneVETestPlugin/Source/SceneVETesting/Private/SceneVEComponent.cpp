@@ -11,6 +11,7 @@ FTestSceneExtension::FTestSceneExtension(const FAutoRegister& AutoRegister) : FS
 {
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Autoregister"));
 	this->Enabled = false;
+	InitParameterArray();
 }
 
 void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
@@ -33,19 +34,17 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 	if (PassId == EPostProcessingPass::Tonemap)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is Tonemap!"));
-		
+		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
 	}
 
 	if (PassId == EPostProcessingPass::FXAA)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is FXAA!"));
-
 	}
 
 	if (PassId == EPostProcessingPass::VisualizeDepthOfField)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is VisualizeDepthOfField!"));
-		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
 	}
 
 	if (PassId == EPostProcessingPass::MAX)
@@ -60,7 +59,7 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 
 FScreenPassTexture FTestSceneExtension::TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
-	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs);
+	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, HeatResources);
 	return SceneTexture;
 }
 
@@ -76,6 +75,7 @@ void USceneVEComponent::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Component BeginPlay!"));
 	CreateSceneViewExtension();
 }
+
 
 // On a separate function to hook f.ex. for in editor creation etc.
 void USceneVEComponent::CreateSceneViewExtension()
