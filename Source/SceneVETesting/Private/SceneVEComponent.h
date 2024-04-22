@@ -16,6 +16,21 @@
 
 #include "SceneVEComponent.generated.h"
 
+struct FHeatResource
+{
+	FVector Center;
+	float Radius;
+	FVector Color;
+	
+public:
+	FHeatResource(const FVector& iCenter, const FVector& iColor, float iRadius)
+	{
+		Center = iCenter;
+		Radius = iRadius;
+		Color = iColor;
+	}
+};
+
 // Use FSceneViewExtensionBase to extend hook properly
 class FTestSceneExtension : public FSceneViewExtensionBase
 {
@@ -34,10 +49,31 @@ public:
 
 	// This is our actual hook function
 	FScreenPassTexture TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& InOutInputs);
-
+	
+	
 private:
 	bool Enabled;
-
+	TArray<FHeatResource> HeatResources;
+	void InitParameterArray()
+	{
+		int Count = 5;
+		// Temperary Array Initializing;
+		FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
+		HeatResources.Init(Hr, Count);
+		/*for (auto& hr : HeatResources)
+		{
+			hr.Center = FVector(
+				FMath::RandRange(-10.0f, 10.0f),
+				FMath::RandRange(-10.0f, 10.0f),
+				FMath::RandRange(-10.0f, 10.0f));
+			hr.Radius = FMath::RandRange(32.0f, 256.0f);
+		}*/
+		HeatResources[0] = FHeatResource(FVector(0,0,0), FVector(1,1,1), 256.0f);
+		HeatResources[1] = FHeatResource(FVector(0,512,0), FVector(0,1,0), 128.0f);
+		HeatResources[2] = FHeatResource(FVector(512,0,0), FVector(1,0,0), 128.0f);
+		HeatResources[3] = FHeatResource(FVector(0,-512,0), FVector(1,0,1), 64.0f);
+		HeatResources[4] = FHeatResource(FVector(-512,0,0), FVector(0,1,1), 64.0f);
+	}
 };
 
 // SceneVEComponent. Simple spawnable component to be place in the editor to an empty or other actor

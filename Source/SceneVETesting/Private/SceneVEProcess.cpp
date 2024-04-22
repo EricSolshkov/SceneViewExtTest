@@ -71,7 +71,7 @@ namespace {
 }
 // copy end
 
-FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& Inputs)
+FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& Inputs, const TArray<FHeatResource> HeatResources)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -244,31 +244,18 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(templateRenderTargetTexture));
 
 			// Create Structured Buffer for HeatResources
-			uint32 Count = 16;
-			uint32 BufferSize = Count * sizeof(FHeatResource);
-			// Temperary Array Initializing;
-			TArray<FHeatResource> HeatResources;
-			FHeatResource Hr = FHeatResource(FVector::ZeroVector, 256);
-			HeatResources.Init(Hr, Count);
-			for (auto& hr : HeatResources)
-			{
-				hr.Center = FVector(
-					FMath::RandRange(-10000.0f, 10000.0f),
-					FMath::RandRange(-10000.0f, 10000.0f),
-					FMath::RandRange(-10000.0f, 10000.0f));
-			}
 			FRDGBufferRef HeatResourceRDGRef = CreateStructuredBuffer(
 				GraphBuilder,
 				TEXT("HeatResources"),
 				sizeof(FHeatResource),
-				Count,
+				HeatResources.Num(),
 				HeatResources.GetData(),
-				BufferSize,
+				HeatResources.Num() * sizeof(FHeatResource),
 				ERDGInitialDataFlags::NoCopy
 				);
 			auto HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
-			PassParameters->HeatResourceCount = Count;
 			PassParameters->HeatResources = HeatResourcesSRV;
+			PassParameters->HeatResourceCount = HeatResources.Num();
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;
