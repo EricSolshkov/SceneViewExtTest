@@ -246,16 +246,18 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			// Create Structured Buffer for HeatResources
 			FRDGBufferRef HeatResourceRDGRef = CreateStructuredBuffer(
 				GraphBuilder,
-				TEXT("HeatResources"),
+				TEXT("HeatResource"),
 				sizeof(FHeatResource),
 				HeatResources.Num(),
 				HeatResources.GetData(),
-				HeatResources.Num() * sizeof(FHeatResource),
-				ERDGInitialDataFlags::NoCopy
+				HeatResources.Num() * sizeof(FHeatResource)
 				);
-			auto HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
-			PassParameters->HeatResources = HeatResourcesSRV;
+			FRDGBufferUAVRef HeatResourcesUAV = GraphBuilder.CreateUAV(HeatResourceRDGRef);
+			PassParameters->HeatResources = HeatResourcesUAV;
 			PassParameters->HeatResourceCount = HeatResources.Num();
+
+			// For debug
+			
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;

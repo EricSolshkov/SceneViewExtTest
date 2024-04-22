@@ -56,23 +56,27 @@ private:
 	TArray<FHeatResource> HeatResources;
 	void InitParameterArray()
 	{
-		int Count = 5;
+		int Count = 32;
 		// Temperary Array Initializing;
 		FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
 		HeatResources.Init(Hr, Count);
-		/*for (auto& hr : HeatResources)
+		for (auto& hr : HeatResources)
 		{
 			hr.Center = FVector(
-				FMath::RandRange(-10.0f, 10.0f),
-				FMath::RandRange(-10.0f, 10.0f),
-				FMath::RandRange(-10.0f, 10.0f));
-			hr.Radius = FMath::RandRange(32.0f, 256.0f);
-		}*/
-		HeatResources[0] = FHeatResource(FVector(0,0,0), FVector(1,1,1), 256.0f);
-		HeatResources[1] = FHeatResource(FVector(0,512,0), FVector(0,1,0), 128.0f);
-		HeatResources[2] = FHeatResource(FVector(512,0,0), FVector(1,0,0), 128.0f);
-		HeatResources[3] = FHeatResource(FVector(0,-512,0), FVector(1,0,1), 64.0f);
-		HeatResources[4] = FHeatResource(FVector(-512,0,0), FVector(0,1,1), 64.0f);
+				FMath::RandRange(-512.0f, 512.0f),
+				FMath::RandRange(-512.0f, 512.0f),
+				FMath::RandRange(-50.0f, 50.0f));
+			hr.Radius = FMath::RandRange(8.0f, 64.0f);
+			hr.Color = FVector(
+				FMath::RandRange(0.0f, 1.0f),
+				FMath::RandRange(0.0f, 1.0f),
+				FMath::RandRange(0.0f, 1.0f));
+		}
+		//HeatResources[0] = FHeatResource(FVector(0,0,0), FVector(1,0,0), 256.0f);
+		//HeatResources[1] = FHeatResource(FVector(0,512,0), FVector(0,0,0), 128.0f);
+		//HeatResources[2] = FHeatResource(FVector(512,0,0), FVector(0,0,0), 128.0f);
+		//HeatResources[3] = FHeatResource(FVector(0,-512,0), FVector(0,0,0), 64.0f);
+		//HeatResources[4] = FHeatResource(FVector(-512,0,0), FVector(0,0,0), 64.0f);
 	}
 };
 
