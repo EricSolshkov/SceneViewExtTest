@@ -23,7 +23,7 @@ struct FHeatResource
 
 // Parameters
 uint4 ViewportRect;
-StructuredBuffer<FHeatResource> HeatResources;
+RWStructuredBuffer<FHeatResource> HeatResources;
 uint HeatResourceCount;
 
 // We should be able to use View.BufferSizeAndInvSize here, but currently it is not possible/easy to get consistent results due to different scaling applications

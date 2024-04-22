@@ -87,7 +87,7 @@ public:
 #if ENGINE_MAJOR_VERSION == 5
 		SHADER_PARAMETER(FVector2f, SceneColorBufferInvSize)
 #else
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FHeatResource>, HeatResources)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(StructuredBuffer<FHeatResource>, HeatResources)
 		SHADER_PARAMETER(uint32, HeatResourceCount)
 		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
 #endif
@@ -109,6 +109,5 @@ public:
 	// Hook to the SceneViewExtension Base
 	static FScreenPassTexture AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& Inputs, const TArray<FHeatResource> HeatResources);
 
-private:
 
 };
