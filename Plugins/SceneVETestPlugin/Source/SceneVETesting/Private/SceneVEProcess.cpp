@@ -7,9 +7,12 @@
 #include "RenderGraphUtils.h"
 
 // Shader implementation Macro doesn't work on .h file so load them here
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderPS, "/Plugins/SceneVETestPlugin/SceneVETestShaderPS.usf", "MainPS", SF_Pixel);    // point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderVS, "/Plugins/SceneVETestPlugin/SceneVETestShaderVS.usf", "MainVS", SF_Vertex);    // point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderCS, "/Plugins/SceneVETestPlugin/SceneVETestShaderCS.usf", "MainCS", SF_Compute);    // point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderPS, "/Plugins/SceneVETestPlugin/SceneVETestShaderPS.usf", "MainPS", SF_Pixel);
+// point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderVS, "/Plugins/SceneVETestPlugin/SceneVETestShaderVS.usf", "MainVS", SF_Vertex)
+; // point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderCS, "/Plugins/SceneVETestPlugin/SceneVETestShaderCS.usf", "MainCS",
+                        SF_Compute); // point to the shader  file, name of the main function in shader.usf
 
 
 namespace
@@ -25,8 +28,9 @@ namespace
 
 // Draw Screen Pass function copied directly from the engine OpenColorIODisplayExtension.cpp
 // copy start
-namespace {
-	template<typename TSetupFunction>
+namespace
+{
+	template <typename TSetupFunction>
 	void DrawScreenPass(
 		FRHICommandListImmediate& RHICmdList,
 		const FSceneView& View,
@@ -69,9 +73,26 @@ namespace {
 			DrawRectangleFlags);
 	}
 }
+
 // copy end
 
-FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& Inputs, const TArray<FHeatResource> HeatResources)
+// utility for using external texture resource
+inline FRDGTextureRef RegisterExternalTexture(FRDGBuilder& GraphBuilder, FRHITexture* Texture, const TCHAR* NameIfUnregistered)
+{
+	if (FRDGTextureRef FoundTexture = GraphBuilder.FindExternalTexture(Texture))
+	{
+		return FoundTexture;
+	}
+	return GraphBuilder.RegisterExternalTexture(CreateRenderTarget(Texture, NameIfUnregistered));
+}
+
+
+FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
+	FRDGBuilder& GraphBuilder,
+	const FSceneView& SceneView,
+	const FPostProcessMaterialInputs& Inputs,
+	const TArray<FHeatResource> HeatResources,
+	const UVolumeTexture* Noise)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -109,15 +130,17 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 				templateRenderTarget = Inputs.OverrideOutput;
 			}
 			else
-				// Otherwise make a template RenderTarget
+			// Otherwise make a template RenderTarget
 			{
 				FRDGTextureDesc OutputDesc = SceneColor.Texture->Desc;
 				OutputDesc.Flags |= TexCreate_RenderTargetable;
 				FLinearColor ClearColor(0., 0., 0., 0.);
 				OutputDesc.ClearValue = FClearValueBinding(ClearColor);
 
-				FRDGTexture* templateRenderTargetTexture = GraphBuilder.CreateTexture(OutputDesc, TEXT("templateRenderTargetTexture"));
-				templateRenderTarget = FScreenPassRenderTarget(templateRenderTargetTexture, SceneColor.ViewRect, ERenderTargetLoadAction::EClear);
+				FRDGTexture* templateRenderTargetTexture = GraphBuilder.CreateTexture(
+					OutputDesc, TEXT("templateRenderTargetTexture"));
+				templateRenderTarget = FScreenPassRenderTarget(templateRenderTargetTexture, SceneColor.ViewRect,
+				                                               ERenderTargetLoadAction::EClear);
 			}
 
 			// The Viewport in source and destination might be different
@@ -136,7 +159,8 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 				TShaderMapRef<FSceneVETestShaderPS> PixelShader(GlobalShaderMap);
 
 				// Pass the shader parameters
-				FSceneVETestShaderParameters* PassParameters = GraphBuilder.AllocParameters<FSceneVETestShaderParameters>();
+				FSceneVETestShaderParameters* PassParameters = GraphBuilder.AllocParameters<
+					FSceneVETestShaderParameters>();
 				PassParameters->InputTexture = SceneColorRenderTarget.Texture;
 				PassParameters->InputSampler = TStaticSamplerState<>::GetRHI();
 				PassParameters->RenderTargets[0] = templateRenderTarget.GetRenderTargetBinding();
@@ -147,13 +171,13 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 					PassParameters,
 					ERDGPassFlags::Raster,
 					[&SceneView,
-					VertexShader,
-					PixelShader,
-					DefaultBlendState,
-					DepthStencilState,
-					SceneColorViewport,
-					tempRenderTargetViewport,
-					PassParameters](FRHICommandListImmediate& RHICmdList)
+						VertexShader,
+						PixelShader,
+						DefaultBlendState,
+						DepthStencilState,
+						SceneColorViewport,
+						tempRenderTargetViewport,
+						PassParameters](FRHICommandListImmediate& RHICmdList)
 					{
 						DrawScreenPass(
 							RHICmdList,
@@ -163,10 +187,10 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 							FScreenPassPipelineState(VertexShader, PixelShader, DefaultBlendState, DepthStencilState),
 							[&](FRHICommandListImmediate& RHICmdList)
 							{
-								SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(), *PassParameters);
+								SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(),
+								                    *PassParameters);
 							});
 					});
-
 			}
 			// Return the result
 			return MoveTemp(templateRenderTarget);
@@ -177,7 +201,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 
 	{
 		// Compute Shader version
-		
+
 		// Here starts the RDG stuff
 		RDG_EVENT_SCOPE(GraphBuilder, "SceneVETestPass");
 		{
@@ -195,13 +219,14 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 
 				FLinearColor ClearColor(0., 0., 0., 0.);
 				OutputDesc.ClearValue = FClearValueBinding(ClearColor);
-				
 			}
 
-			FRDGTextureRef templateRenderTargetTexture = GraphBuilder.CreateTexture(OutputDesc, TEXT("templateRenderTargetTexture"));
-			
+			FRDGTextureRef OutputRTTextureRef = GraphBuilder.CreateTexture(
+				OutputDesc, TEXT("templateRenderTargetTexture"));
+
 			// Set the shader parameters
-			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FSceneVETestShaderCS::FParameters>();
+			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<
+				FSceneVETestShaderCS::FParameters>();
 
 			// Input is the SceneColor from PostProcess Material Inputs
 			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
@@ -231,7 +256,8 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 #if ENGINE_MAJOR_VERSION == 5
 			PassParameters->SceneColorBufferInvSize = FVector2f(1.0f / SceneColor.Texture->Desc.Extent.X, 1.0f / SceneColor.Texture->Desc.Extent.Y);
 #else
-			PassParameters->SceneColorBufferInvSize = FVector2D(1.0f / SceneColor.Texture->Desc.Extent.X, 1.0f / SceneColor.Texture->Desc.Extent.Y);
+			PassParameters->SceneColorBufferInvSize = FVector2D(1.0f / SceneColor.Texture->Desc.Extent.X,
+			                                                    1.0f / SceneColor.Texture->Desc.Extent.Y);
 #endif
 
 			// Method to setup common parameters, we use this to pass ViewUniformBuffer data
@@ -241,7 +267,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			PassParameters->CommonParameters = CommonParameters;
 
 			// Create UAV from Target Texture
-			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(templateRenderTargetTexture));
+			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(OutputRTTextureRef));
 
 			// Create Structured Buffer for HeatResources
 			FRDGBufferRef HeatResourceRDGRef = CreateStructuredBuffer(
@@ -251,13 +277,29 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 				HeatResources.Num(),
 				HeatResources.GetData(),
 				HeatResources.Num() * sizeof(FHeatResource)
-				);
-			FRDGBufferUAVRef HeatResourcesUAV = GraphBuilder.CreateUAV(HeatResourceRDGRef);
-			PassParameters->HeatResources = HeatResourcesUAV;
+			);
+
+			// Since HeatResources is read-only for shader, the view of buffer needs to be SRV.
+			// if using SRV, declaration in usf should be StructuredBuffer<> instead of RWSB<>
+			// RWSB<> is only for UAV.
+
+			FRDGBufferSRVRef HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
+			PassParameters->HeatResources = HeatResourcesSRV;
 			PassParameters->HeatResourceCount = HeatResources.Num();
 
-			// For debug
-			
+			// Pass Noise
+			PassParameters->Noise = Noise->TextureReference.TextureReferenceRHI;
+
+			// Initialize Noise SamplerState
+			FSamplerStateInitializerRHI SSIniter;
+			{
+				SSIniter.AddressU = ESamplerAddressMode::AM_Wrap;
+				SSIniter.AddressV = ESamplerAddressMode::AM_Wrap;
+				SSIniter.AddressW = ESamplerAddressMode::AM_Wrap;
+				SSIniter.Filter = SF_Bilinear;
+			}
+			auto NoiseSamplerState = RHICreateSamplerState(SSIniter);
+			PassParameters->NoiseSampler = NoiseSamplerState;
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;
@@ -278,13 +320,9 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(FRDGBuilder& GraphBuilder
 			// If you are doing multiple passes, technically you should be able to even use the original scenecolor RT as the final output buffer as UAV
 			// However, for some reason that seems to work very randomy, so usually with multiple passes, this is the last method I use with multiple Compute Shaders
 
-			AddCopyTexturePass(GraphBuilder, templateRenderTargetTexture, SceneColor.Texture);
+			AddCopyTexturePass(GraphBuilder, OutputRTTextureRef, SceneColor.Texture);
 
 			return SceneColor;
 		}
-
-
 	}
-
 }
-

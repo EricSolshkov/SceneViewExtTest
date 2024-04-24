@@ -14,6 +14,10 @@
 		{
 			"Name": "SceneVETestPlugin",
 			"Enabled": true
+		},
+		{
+			"Name": "Volumetrics",
+			"Enabled": true
 		}
 	]
 }
