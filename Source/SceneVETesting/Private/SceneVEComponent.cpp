@@ -5,6 +5,7 @@
 
 #include "SceneVEComponent.h"
 #include "SceneVEProcess.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 
 // Functions needed for SceneViewExtension
 FTestSceneExtension::FTestSceneExtension(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
@@ -24,6 +25,8 @@ void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled)
 {
 	if(!this->Enabled) return;
+
+	if(!Noise) return;
 	
 	if (PassId == EPostProcessingPass::MotionBlur)
 	{
@@ -59,7 +62,7 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 
 FScreenPassTexture FTestSceneExtension::TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
-	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, HeatResources);
+	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, HeatResources, Noise);
 	return SceneTexture;
 }
 
@@ -74,6 +77,7 @@ void USceneVEComponent::BeginPlay()
 	Super::BeginPlay();
 	UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Component BeginPlay!"));
 	CreateSceneViewExtension();
+	TestSceneExtension->Noise = Noise;
 }
 
 
