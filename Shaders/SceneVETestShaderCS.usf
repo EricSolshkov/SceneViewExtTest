@@ -84,7 +84,7 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 		float Local4 = (1.00000000 - Dist2HitScaled);
 		float RalativeRadiusClamp = (Local4 * 1.00000000);
 
-		float3 ScaledWorldPosition = Vec2Hit.xyz * 0.0078125f;
+		float3 ScaledWorldPosition = Vec2Hit.xyz / 64.0f;
 		float NoiseSample = Texture3DSample(Noise, NoiseSampler, ScaledWorldPosition).r;
 		float InvNoise = 1.0f - NoiseSample;
 		float ScaledInvNoise = InvNoise * 0.5f;

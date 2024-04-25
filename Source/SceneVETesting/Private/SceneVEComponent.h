@@ -62,7 +62,7 @@ public:
 	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override {};
 	virtual void SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled);
 	void SetEnabled(const bool NewEnabled) { this->Enabled = NewEnabled; UE_LOG(LogTemp, Log, TEXT("set to %sabled"), this->Enabled?"en":"dis");}
-
+	bool IsEnabled() { return this->Enabled;}
 	// This is our actual hook function
 	FScreenPassTexture TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& InOutInputs);
 	
@@ -70,36 +70,14 @@ public:
 private:
 	bool Enabled;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<FHeatResource> HeatResources;
-
 public:
 	UVolumeTexture* Noise = nullptr;
 	
-	void InitParameterArray()
-	{
-		int Count = 32;
-		// Temperary Array Initializing;
-		FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
-		HeatResources.Init(Hr, Count);
-		for (auto& hr : HeatResources)
-		{
-			hr.Center = FVector(
-				FMath::RandRange(-512.0f, 512.0f),
-				FMath::RandRange(-512.0f, 512.0f),
-				FMath::RandRange(-50.0f, 50.0f));
-			hr.Radius = FMath::RandRange(8.0f, 64.0f);
-			hr.Color = FVector(
-				FMath::RandRange(0.0f, 1.0f),
-				FMath::RandRange(0.0f, 1.0f),
-				FMath::RandRange(0.0f, 1.0f));
-		}
-		//HeatResources[0] = FHeatResource(FVector(0,0,0), FVector(1,0,0), 256.0f);
-		//HeatResources[1] = FHeatResource(FVector(0,512,0), FVector(0,0,0), 128.0f);
-		//HeatResources[2] = FHeatResource(FVector(512,0,0), FVector(0,0,0), 128.0f);
-		//HeatResources[3] = FHeatResource(FVector(0,-512,0), FVector(0,0,0), 64.0f);
-		//HeatResources[4] = FHeatResource(FVector(-512,0,0), FVector(0,0,0), 64.0f);
-	}
+	TArray<FHeatResource> HeatResources;
+
+	void UpdateHeatResourceArray(const TArray<FHeatResource>& NewArray);
+
+	TArray<FHeatResource> GetHeatResources();
 };
 
 // SceneVEComponent. Simple spawnable component to be place in the editor to an empty or other actor
@@ -123,6 +101,10 @@ protected:
 	void CreateSceneViewExtension();
 
 public:
+	TArray<FHeatResource> HeatResources;
+	TArray<FHeatResource> InitParameterArray();
+	void UpdateHeatResources();
+	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:

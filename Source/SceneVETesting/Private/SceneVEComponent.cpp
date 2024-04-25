@@ -12,7 +12,6 @@ FTestSceneExtension::FTestSceneExtension(const FAutoRegister& AutoRegister) : FS
 {
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Autoregister"));
 	this->Enabled = false;
-	InitParameterArray();
 }
 
 void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
@@ -66,6 +65,16 @@ FScreenPassTexture FTestSceneExtension::TestPostProcessPass_RT(FRDGBuilder& Grap
 	return SceneTexture;
 }
 
+void FTestSceneExtension::UpdateHeatResourceArray(const TArray<FHeatResource>& NewArray)
+{
+	HeatResources = NewArray;
+}
+
+TArray<FHeatResource> FTestSceneExtension::GetHeatResources()
+{
+	return HeatResources;
+}
+
 USceneVEComponent::USceneVEComponent(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -77,6 +86,8 @@ void USceneVEComponent::BeginPlay()
 	Super::BeginPlay();
 	UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Component BeginPlay!"));
 	CreateSceneViewExtension();
+	HeatResources = InitParameterArray();
+	TestSceneExtension->HeatResources = HeatResources;
 	TestSceneExtension->Noise = Noise;
 }
 
@@ -88,10 +99,44 @@ void USceneVEComponent::CreateSceneViewExtension()
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Scene Extension Created!"));
 }
 
+TArray<FHeatResource> USceneVEComponent::InitParameterArray()
+{
+	int Count = 512;
+	// Temperary Array Initializing;
+	FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
+	HeatResources.Init(Hr, Count);
+	for (auto& hr : HeatResources)
+	{
+		hr.Center = FVector(
+			FMath::RandRange(-512.0f, 512.0f),
+			FMath::RandRange(-512.0f, 512.0f),
+			FMath::RandRange(-50.0f, 50.0f));
+		hr.Radius = FMath::RandRange(8.0f, 64.0f);
+		hr.Color = FVector(
+			FMath::RandRange(0.0f, 1.0f),
+			FMath::RandRange(0.0f, 1.0f),
+			FMath::RandRange(0.0f, 1.0f));
+	}
+	return HeatResources;
+}
+
+void USceneVEComponent::UpdateHeatResources()
+{
+	for(FHeatResource& hr : HeatResources)
+	{
+		hr.Center += FVector(
+			FMath::RandRange(-0.5f, 0.5f),
+			FMath::RandRange(-0.5f, 0.5f),
+			0
+		);
+	}
+	TestSceneExtension->HeatResources = HeatResources;
+}
+
 
 // Called every frame
 void USceneVEComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	if (TestSceneExtension->IsEnabled()) UpdateHeatResources();
 }
