@@ -4,16 +4,8 @@
 // SceneVEProcess.cpp - Actual RDG hook and Shader Loading
 
 #include "SceneVEProcess.h"
+#include "ShaderDeclarations.h"
 #include "RenderGraphUtils.h"
-
-// Shader implementation Macro doesn't work on .h file so load them here
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderPS, "/Plugins/SceneVETestPlugin/SceneVETestShaderPS.usf", "MainPS", SF_Pixel);
-// point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderVS, "/Plugins/SceneVETestPlugin/SceneVETestShaderVS.usf", "MainVS", SF_Vertex)
-; // point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderCS, "/Plugins/SceneVETestPlugin/SceneVETestShaderCS.usf", "MainCS",
-                        SF_Compute); // point to the shader  file, name of the main function in shader.usf
-
 
 namespace
 {
