@@ -12,10 +12,6 @@
 USceneVEComponent::USceneVEComponent(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	if (!TestSceneExtension)
-	{
-		CreateSceneViewExtension();
-	}
 }
 
 void USceneVEComponent::SetEnabled(const bool Enabled)
