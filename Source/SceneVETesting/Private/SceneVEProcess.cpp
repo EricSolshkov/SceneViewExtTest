@@ -283,15 +283,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 			PassParameters->Noise = Noise->TextureReference.TextureReferenceRHI;
 
 			// Initialize Noise SamplerState
-			FSamplerStateInitializerRHI SSIniter;
-			{
-				SSIniter.AddressU = ESamplerAddressMode::AM_Wrap;
-				SSIniter.AddressV = ESamplerAddressMode::AM_Wrap;
-				SSIniter.AddressW = ESamplerAddressMode::AM_Wrap;
-				SSIniter.Filter = SF_Bilinear;
-			}
-			auto NoiseSamplerState = RHICreateSamplerState(SSIniter);
-			PassParameters->NoiseSampler = NoiseSamplerState;
+			PassParameters->NoiseSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;
