@@ -23,13 +23,13 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 	if (PassId == EPostProcessingPass::MotionBlur)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is MotionBlur!"));
-		
+		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
 	}
 
 	if (PassId == EPostProcessingPass::Tonemap)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is Tonemap!"));
-		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
+		
 	}
 
 	if (PassId == EPostProcessingPass::FXAA)
