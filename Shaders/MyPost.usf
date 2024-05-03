@@ -2415,55 +2415,70 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 #if !PARTICLE_SPRITE_FACTORY
     Parameters.Particle.MotionBlurFade = 1.0f;
 #endif // !PARTICLE_SPRITE_FACTORY
-
-    // Now the rest of the inputs
-    float3 VecToCenter = (Material.VectorExpressions[2].rgb - GetWorldPosition(Parameters));
-    float SqrDistToCenter = dot(VecToCenter, VecToCenter);
-    float DistToCenter = sqrt(SqrDistToCenter);
-    float ScaledDistToCenter = (DistToCenter * 0.00390625);
-    float ScaledDistFromCenter = (1.00000000 - ScaledDistToCenter);
-    ScaledDistFromCenter = min(max(ScaledDistFromCenter,0.00000000),1.00000000);
-    float3 ScaledWorldPosition = (GetWorldPosition(Parameters) / 128.00000000);
-    float4 Noise = ProcessMaterialColorTextureLookup(Texture3DSample(Material.VolumeTexture_0, Material.VolumeTexture_0Sampler, ScaledWorldPosition));
-    float3 InvNoise = (1.00000000 - Noise.rgb);
-    float3 ScaledNoise = (InvNoise / 8.00000000);
-    float3 NoisedRadius = (ScaledDistToCenter - ScaledNoise);
-    float3 ClampedNoise = min(max(NoisedRadius,MaterialFloat3(0.00000000,0.00000000,0.00000000)),MaterialFloat3(256.00000000,256.00000000,256.00000000));
-    float4 BaseColor = SceneTextureLookup(GetDefaultSceneTextureUV(Parameters, 5), 5, false);
-    float3 HeatedColor = (ClampedNoise + BaseColor.rgba.rgb);
-
-    // RGB to Grey Scale
-    float HeatedColorRG = (HeatedColor.r + HeatedColor.g);
-    float HeatedSum = (HeatedColorRG + HeatedColorRG.b);
-    float HeatedColor01 = (HeatedSum / 3.00000000);
-    float HeatedColor256 = (HeatedColor01 * 256.00000000);
+// control parameters
+    {
+        float LowCut;
+        float HighCut;
+        float HalfValueDepth;
+        Texture2D ColorStripe;
+        SamplerState ColorStripeSampler;
+        float4x4 WorldToView;
+    }
+    // Now the rest of the inputs( RGB to Grey Scale)
+    float3 HeatedColor = float3(0,0,0);
+    for (int i = 0; i < heatResourceCount; ++i)
+    {
+        float3 VecToCenter = (HeatResources[i].Center - GetWorldPosition(Parameters));
+        float SqrDistToCenter = dot(VecToCenter, VecToCenter);
+        float DistToCenter = sqrt(SqrDistToCenter);
+        float ScaledDistToCenter = (DistToCenter * 0.00390625);
+        float ScaledDistFromCenter = (1.00000000 - ScaledDistToCenter);
+        ScaledDistFromCenter = min(max(ScaledDistFromCenter,0.00000000),1.00000000);
+        float3 ScaledWorldPosition = (GetWorldPosition(Parameters) / 128.00000000);
+        float4 Noise = ProcessMaterialColorTextureLookup(Texture3DSample(Material.VolumeTexture_0, Material.VolumeTexture_0Sampler, ScaledWorldPosition));
+        float3 InvNoise = (1.00000000 - Noise.rgb);
+        float3 ScaledNoise = (InvNoise / 8.00000000);
+        float3 NoisedRadius = (ScaledDistToCenter - ScaledNoise);
+        float3 ClampedNoise = min(max(NoisedRadius,MaterialFloat3(0.00000000,0.00000000,0.00000000)),MaterialFloat3(256.00000000,256.00000000,256.00000000));
+        float ClampedNoiseRG = (ClampedNoise.r + ClampedNoise.g);
+        float ClampedNoiseSum = (ClampedNoiseRG + ClampedNoise.b);
+        float HeatedColor01 = (ClampedNoiseSum / 3.00000000);
+        HeatedColor = max(HeatedColor01, HeatedColor);
+    }
+    // Map from 01 to 256
+    float4 BaseColor = GBuffer.BaseColor;
+    float BaseColorRG = (BaseColor.r + BaseColor.g);
+    float BaseColorSum = (BaseColorRG + BaseColor.b);
+    float BaseColor01 = (BaseColorSum / 3.00000000);
+    HeatedColor = HeatedColor + BaseColor01;
+    float HeatedColor256 = (HeatedColor * 256.00000000);
 
     // Map to color stripe
-    float HeatFromLowCut = (HeatedColor256 - Material.ScalarExpressions[0].x);
-    float ScaledHeat = (HeatFromLowCut / Material.ScalarExpressions[0].z);
-    float4 HeatColor = ProcessMaterialColorTextureLookup(Texture2DSample(Material.Texture2D_0, Material.Texture2D_0Sampler,MaterialFloat2(ScaledHeat,0.50000000)));
+    float HeatFromLowCut = (HeatedColor256 - LowCut);
+    float Range = HighCut - LowCut;
+    float ScaledHeat = HeatFromLowCut / Range;
+    float4 MappedHeatedColor = Texture2DSample(ColorStripe, ColorStripeSampler,float2(ScaledHeat,0.50000000));
 
     // Distance/Depth Decay
-    float4 SceneDepth = SceneTextureLookup(GetDefaultSceneTextureUV(Parameters, 1), 1, false);
-    float4 ScaledDepth = (SceneDepth.rgba / Material.ScalarExpressions[0].w);
+    float SceneDepth = GBuffer.Depth;
+    float ScaledDepth = (SceneDepth / HalfValueDepth);
     ScaledDepth = (ScaledDepth + 1.00000000);
-    float4 InvDepth = (1.00000000 / ScaledDepth);
-    float4 InvSqrtDepth = sqrt(InvDepth);
+    float InvDepth = (1.00000000 / ScaledDepth);
+    float InvSqrtDepth = sqrt(InvDepth);
 
     // Fake AO Decay
-    float4 WorldNormal = SceneTextureLookup(GetDefaultSceneTextureUV(Parameters, 8), 8, false);
-    float3 CameraNormal = mul(WorldNormal.rgba, (MaterialFloat3x3)(ResolvedView.TranslatedWorldToCameraView));
+    float4 WorldNormal = GBuffer.WorldNormal;
+    float3 CameraNormal = mul(WorldNormal.rgba, WorldToView);
     float CameraNormalSq = dot(CameraNormal, CameraNormal);
     float CameraNormalLength = sqrt(CameraNormalSq);
     float3 IdentCamNormal = (CameraNormal / CameraNormalLength);
-    float3 InvIdentCamNormal = (IdentCamNormal * -1.00000000);
-    float NDotL = dot(InvIdentCamNormal, Material.VectorExpressions[4].rgb);
-    float Temp0 = (NDotL + 4.00000000);
+    float TowardOutsideScreen = (IdentCamNormal.z * -1.00000000);
+    float Temp0 = (TowardOutsideScreen + 4.00000000);
     float AODecay = (Temp0 / 5.00000000);
-    float4 FinalDecay = (InvSqrtDepth * AODecay);
+    float FinalDecay = (InvSqrtDepth * AODecay);
 
     // Final decay.
-    float4 DecayedHeat = (HeatColor.rgba * FinalDecay);
+    float4 DecayedHeat = float4(MappedHeatedColor.rgb * FinalDecay, 1);
     float3 Local38 = lerp(DecayedHeat.rgb,Material.VectorExpressions[5].rgb,MaterialFloat(Material.ScalarExpressions[1].x));
 
     PixelMaterialInputs.EmissiveColor = Local38;
