@@ -33,6 +33,8 @@ private:
 
 public:
 	UVolumeTexture* Noise = nullptr;
+
+	UTexture2D* ColorStripe = nullptr;
 	
 	TArray<FHeatResource> HeatResources;
 

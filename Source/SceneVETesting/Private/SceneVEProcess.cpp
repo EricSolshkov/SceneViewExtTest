@@ -83,8 +83,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 	FRDGBuilder& GraphBuilder,
 	const FSceneView& SceneView,
 	const FPostProcessMaterialInputs& Inputs,
-	const TArray<FHeatResource> HeatResources,
-	const UVolumeTexture* Noise)
+	const MyComputeShaderInputParameters CSInputParameters)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -266,9 +265,9 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 				GraphBuilder,
 				TEXT("HeatResource"),
 				sizeof(FHeatResource),
-				HeatResources.Num(),
-				HeatResources.GetData(),
-				HeatResources.Num() * sizeof(FHeatResource)
+				CSInputParameters.HeatResources.Num(),
+				CSInputParameters.HeatResources.GetData(),
+				CSInputParameters.HeatResources.Num() * sizeof(FHeatResource)
 			);
 
 			// Since HeatResources is read-only for shader, the view of buffer needs to be SRV.
@@ -277,13 +276,20 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 
 			FRDGBufferSRVRef HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
 			PassParameters->HeatResources = HeatResourcesSRV;
-			PassParameters->HeatResourceCount = HeatResources.Num();
+			PassParameters->HeatResourceCount = CSInputParameters.HeatResources.Num();
 
-			// Pass Noise
-			PassParameters->Noise = Noise->TextureReference.TextureReferenceRHI;
-
-			// Initialize Noise SamplerState
+			// Pass Noise and SamplerState
+			PassParameters->Noise = CSInputParameters.Noise->TextureReference.TextureReferenceRHI;
 			PassParameters->NoiseSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
+
+			// Pass ColorStripe and SamplerState
+			PassParameters->ColorStripe = CSInputParameters.ColorStripe->TextureReference.TextureReferenceRHI;
+			PassParameters->ColorStripeSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap>::GetRHI();
+
+			// Pass control parameters
+			PassParameters->LowCut = CSInputParameters.LowCut;
+			PassParameters->TemperatureRange = CSInputParameters.TemperatureRange;
+			PassParameters->HalfValueDepth = CSInputParameters.HalfValueDepth;
 
 			// Set groupcount and execute pass
 			const int32 kDefaultGroupSize = 8;

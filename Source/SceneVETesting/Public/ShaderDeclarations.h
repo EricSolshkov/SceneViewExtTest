@@ -78,16 +78,23 @@ public:
 #if ENGINE_MAJOR_VERSION == 5
 		SHADER_PARAMETER(FVector2f, SceneColorBufferInvSize)
 #else
+		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
+	
+#endif
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FHeatResource>, HeatResources)
 		SHADER_PARAMETER(uint32, HeatResourceCount)
-		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
+		SHADER_PARAMETER(float, LowCut)
+		SHADER_PARAMETER(float, TemperatureRange)
+		SHADER_PARAMETER(float, HalfValueDepth)
 
 		SHADER_PARAMETER_TEXTURE(Texture3D, Noise)
 		SHADER_PARAMETER_SAMPLER(SamplerState, NoiseSampler)
+
+		SHADER_PARAMETER_TEXTURE(Texture2D, ColorStripe)
+		SHADER_PARAMETER_SAMPLER(SamplerState, ColorStripeSampler)
 	
-#endif
-		
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D<float4>, Output)
+	
 	END_SHADER_PARAMETER_STRUCT()
 
 	// Basic shader stuff

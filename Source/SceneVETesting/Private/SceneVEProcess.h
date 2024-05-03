@@ -7,6 +7,16 @@
 #include "SceneVEComponent.h"
 #include "ScreenPass.h"
 
+struct MyComputeShaderInputParameters
+{
+	TArray<FHeatResource> HeatResources;
+	UVolumeTexture* Noise;
+	UTexture2D* ColorStripe;
+	float LowCut;
+	float TemperatureRange;
+	float HalfValueDepth;
+};
+
 class FSceneVEProcess
 {
 public:
@@ -15,7 +25,6 @@ public:
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& View,
 		const FPostProcessMaterialInputs& Inputs,
-		const TArray<FHeatResource> HeatResources,
-		const UVolumeTexture* Noise
+		const MyComputeShaderInputParameters CSInputParameters
 		);
 };

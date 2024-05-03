@@ -54,7 +54,14 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 
 FScreenPassTexture FTestSceneExtension::TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
-	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, HeatResources, Noise);
+	MyComputeShaderInputParameters InputParameters;
+	InputParameters.Noise = Noise;
+	InputParameters.ColorStripe = ColorStripe;
+	InputParameters.HeatResources = HeatResources;
+	InputParameters.LowCut = 0.0f;
+	InputParameters.TemperatureRange = 1.0f;
+	InputParameters.HalfValueDepth = 512.0f;
+	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, InputParameters);
 	return SceneTexture;
 }
 

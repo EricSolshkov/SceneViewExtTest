@@ -34,6 +34,7 @@ void USceneVEComponent::BeginPlay()
 	HeatResources = InitParameterArray();
 	TestSceneExtension->HeatResources = HeatResources;
 	TestSceneExtension->Noise = Noise;
+	TestSceneExtension->ColorStripe = ColorStripe;
 }
 
 
@@ -46,16 +47,16 @@ void USceneVEComponent::CreateSceneViewExtension()
 
 TArray<FHeatResource> USceneVEComponent::InitParameterArray()
 {
-	int Count = 512;
+	int Count = 64;
 	// Temperary Array Initializing;
 	FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
 	HeatResources.Init(Hr, Count);
 	for (auto& hr : HeatResources)
 	{
 		hr.Center = FVector(
+			FMath::RandRange(-400-512.0f, -400+512.0f),
 			FMath::RandRange(-512.0f, 512.0f),
-			FMath::RandRange(-512.0f, 512.0f),
-			FMath::RandRange(-50.0f, 50.0f));
+			FMath::RandRange(130-50.0f, 130+50.0f));
 		hr.Radius = FMath::RandRange(8.0f, 64.0f);
 		hr.Color = FVector(
 			FMath::RandRange(0.0f, 1.0f),

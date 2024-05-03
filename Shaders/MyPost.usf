@@ -2422,7 +2422,6 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
         float HalfValueDepth;
         Texture2D ColorStripe;
         SamplerState ColorStripeSampler;
-        float4x4 WorldToView;
     }
     // Now the rest of the inputs( RGB to Grey Scale)
     float3 HeatedColor = float3(0,0,0);
@@ -2463,22 +2462,23 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
     float SceneDepth = GBuffer.Depth;
     float ScaledDepth = (SceneDepth / HalfValueDepth);
     ScaledDepth = (ScaledDepth + 1.00000000);
-    float InvDepth = (1.00000000 / ScaledDepth);
-    float InvSqrtDepth = sqrt(InvDepth);
+    float4 InvDepth = (1.00000000 / ScaledDepth);
+    float4 InvSqrtDepth = sqrt(InvDepth);
 
     // Fake AO Decay
-    float4 WorldNormal = GBuffer.WorldNormal;
-    float3 CameraNormal = mul(WorldNormal.rgba, WorldToView);
+    float4 WorldNormal = SceneTextureLookup(GetDefaultSceneTextureUV(Parameters, 8), 8, false);
+    float3 CameraNormal = mul(WorldNormal.rgba, (MaterialFloat3x3)(ResolvedView.TranslatedWorldToCameraView));
     float CameraNormalSq = dot(CameraNormal, CameraNormal);
     float CameraNormalLength = sqrt(CameraNormalSq);
     float3 IdentCamNormal = (CameraNormal / CameraNormalLength);
-    float TowardOutsideScreen = (IdentCamNormal.z * -1.00000000);
-    float Temp0 = (TowardOutsideScreen + 4.00000000);
+    float3 InvIdentCamNormal = (IdentCamNormal * -1.00000000);
+    float NDotL = dot(InvIdentCamNormal, Material.VectorExpressions[4].rgb);
+    float Temp0 = (NDotL + 4.00000000);
     float AODecay = (Temp0 / 5.00000000);
-    float FinalDecay = (InvSqrtDepth * AODecay);
+    float4 FinalDecay = (InvSqrtDepth * AODecay);
 
     // Final decay.
-    float4 DecayedHeat = float4(MappedHeatedColor.rgb * FinalDecay, 1);
+    float4 DecayedHeat = (MappedHeatedColor.rgba * FinalDecay);
     float3 Local38 = lerp(DecayedHeat.rgb,Material.VectorExpressions[5].rgb,MaterialFloat(Material.ScalarExpressions[1].x));
 
     PixelMaterialInputs.EmissiveColor = Local38;

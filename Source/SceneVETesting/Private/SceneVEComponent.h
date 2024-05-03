@@ -27,6 +27,9 @@ class SCENEVETESTING_API USceneVEComponent : public UActorComponent
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UVolumeTexture* Noise;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* ColorStripe;
 public:
 	USceneVEComponent(const FObjectInitializer& ObjectInitializer);
 
