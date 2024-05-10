@@ -4,7 +4,15 @@
 // SceneVEComponent - The SceneViewExtensionBase. Place this in the editor to an empty actor 
 
 #include "SceneVEComponent.h"
+
+#include <Actor.h>
+
+#include "AcThermalManager.h"
 #include "SceneVEProcess.h"
+#include "GameFramework/Actor.h"
+#include "HeatSource.h"
+
+#include "EngineUtils.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
 
 
@@ -31,8 +39,8 @@ void USceneVEComponent::BeginPlay()
 	{
 		CreateSceneViewExtension();
 	}
-	HeatResources = InitParameterArray();
-	TestSceneExtension->HeatResources = HeatResources;
+	UpdateHeatSources();
+	TestSceneExtension->HeatSources = HeatSources;
 	TestSceneExtension->Noise = Noise;
 	TestSceneExtension->ColorStripe = ColorStripe;
 }
@@ -41,48 +49,38 @@ void USceneVEComponent::BeginPlay()
 // On a separate function to hook f.ex. for in editor creation etc.
 void USceneVEComponent::CreateSceneViewExtension()
 {
-	TestSceneExtension = FSceneViewExtensions::NewExtension<FTestSceneExtension>();
+	TestSceneExtension = FSceneViewExtensions::NewExtension<FThermalVisionExt>();
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Scene Extension Created!"));
 }
 
-TArray<FHeatResource> USceneVEComponent::InitParameterArray()
+void USceneVEComponent::UpdateHeatSources()
 {
-	int Count = 64;
-	// Temperary Array Initializing;
-	FHeatResource Hr = FHeatResource(FVector::ZeroVector, FVector::ZeroVector, 256.0f);
-	HeatResources.Init(Hr, Count);
-	for (auto& hr : HeatResources)
+	// iterate through all actor, get all heat source components of every actor
+	TActorIterator<AActor> ActorItr = TActorIterator<AActor>(GetWorld());
+	TArray<UAcThermalManager*> ThmMgrs;
+	HeatSources.Init(FHeatSourceMeta(), 0);
+	for(; ActorItr; ++ActorItr)
 	{
-		hr.Center = FVector(
-			FMath::RandRange(-400-512.0f, -400+512.0f),
-			FMath::RandRange(-512.0f, 512.0f),
-			FMath::RandRange(130-50.0f, 130+50.0f));
-		hr.Radius = FMath::RandRange(8.0f, 64.0f);
-		hr.Color = FVector(
-			FMath::RandRange(0.0f, 1.0f),
-			FMath::RandRange(0.0f, 1.0f),
-			FMath::RandRange(0.0f, 1.0f));
+		TArray<UAcThermalManager*> Temp;
+		
+		ActorItr->GetComponents(Temp);
+		ThmMgrs.Append(Temp);
 	}
-	return HeatResources;
-}
-
-void USceneVEComponent::UpdateHeatResources()
-{
-	for(FHeatResource& hr : HeatResources)
+	for (auto ThmMgr : ThmMgrs)
 	{
-		hr.Center += FVector(
-			FMath::RandRange(-0.5f, 0.5f),
-			FMath::RandRange(-0.5f, 0.5f),
-			0
-		);
+		ThmMgr->AppendHeatSourcesMeta(HeatSources);
 	}
-	TestSceneExtension->HeatResources = HeatResources;
 }
-
 
 // Called every frame
 void USceneVEComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (TestSceneExtension->IsEnabled()) UpdateHeatResources();
+	if (TestSceneExtension->IsEnabled())
+	{
+		UpdateHeatSources();
+		TestSceneExtension->HeatSources = HeatSources;
+		TestSceneExtension->Noise = Noise;
+		TestSceneExtension->ColorStripe = ColorStripe;
+	}
 }

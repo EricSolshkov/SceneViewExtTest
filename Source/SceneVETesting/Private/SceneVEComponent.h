@@ -6,19 +6,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "HeatResource.h"
+#include "HeatSource.h"
 #include "Components/ActorComponent.h"
 #include "Engine/VolumeTexture.h"
 
-#include "TestSceneExtension.h"
+#include "ThermalVisionExt.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessMaterial.h"
 
 #include "SceneVEComponent.generated.h"
 
 
-// SceneVEComponent. Simple spawnable component to be place in the editor to an empty or other actor
-
+// SceneVEComponent. Simple spawnable component to be place in the editor to an empty or other actor.
+// This component is to construct/pass the input parameters of the shader for scene extension.
+// Should be attached uniquely onto a "Camera-like" actor which is considered responsible for view generation.
+// However, since this component get scene data(textures, buffers) directly from render pipeline,
+// there is no data passing to attached actor and this component.
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class SCENEVETESTING_API USceneVEComponent : public UActorComponent
 {
@@ -35,27 +38,20 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetEnabled(const bool Enabled);
-
-	UFUNCTION(CallInEditor)
-	void EnablePreview() { SetEnabled(true); }
-
-	UFUNCTION(CallInEditor)
-	void DisablePreview() { SetEnabled(false); }
 	
 protected:
 	virtual void BeginPlay() override;
 	void CreateSceneViewExtension();
 
 public:
-	TArray<FHeatResource> HeatResources;
-	
-	TArray<FHeatResource> InitParameterArray();
-	
-	void UpdateHeatResources();
+	TArray<FHeatSourceMeta> HeatSources;
+
+	UFUNCTION(CallInEditor, BlueprintCallable)
+	void UpdateHeatSources();
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	// this is the way to store the SceneExtensionView to keep it safe from not being destroyed - from: SceneViewExtension.h
-	TSharedPtr<class FTestSceneExtension, ESPMode::ThreadSafe > TestSceneExtension;
+	TSharedPtr<class FThermalVisionExt, ESPMode::ThreadSafe > TestSceneExtension;
 };

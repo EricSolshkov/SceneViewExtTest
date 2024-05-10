@@ -1,20 +1,20 @@
-﻿#include "TestSceneExtension.h"
+﻿#include "ThermalVisionExt.h"
 
 // Functions needed for SceneViewExtension
-FTestSceneExtension::FTestSceneExtension(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
+FThermalVisionExt::FThermalVisionExt(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
 {
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Autoregister"));
 	this->Enabled = false;
 }
 
-void FTestSceneExtension::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
+void FThermalVisionExt::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 {
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Begin Render View Family"));
 }
 
 // This is called every frame, use to subscribe where needed - left the possible PassId's just for quick testing, you actually need to test what you need
 
-void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled)
+void FThermalVisionExt::SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled)
 {
 	if(!this->Enabled) return;
 
@@ -23,7 +23,7 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 	if (PassId == EPostProcessingPass::MotionBlur)
 	{
 //		UE_LOG(LogTemp, Warning, TEXT("TestSceneViewExtension: Pass is MotionBlur!"));
-		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTestSceneExtension::TestPostProcessPass_RT));
+		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FThermalVisionExt::ThermalVisionPass));
 	}
 
 	if (PassId == EPostProcessingPass::Tonemap)
@@ -52,25 +52,25 @@ void FTestSceneExtension::SubscribeToPostProcessingPass(EPostProcessingPass Pass
 // This is just an empty helper function now if we need to validate data or make other alterations
 // I think otherwise we could directly subscribe the Process Function to the PassCallBack
 
-FScreenPassTexture FTestSceneExtension::TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
+FScreenPassTexture FThermalVisionExt::ThermalVisionPass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
-	MyComputeShaderInputParameters InputParameters;
+	FCSInputParameters InputParameters;
 	InputParameters.Noise = Noise;
 	InputParameters.ColorStripe = ColorStripe;
-	InputParameters.HeatResources = HeatResources;
+	InputParameters.HeatResources = HeatSources;
 	InputParameters.LowCut = 0.0f;
 	InputParameters.TemperatureRange = 1.0f;
 	InputParameters.HalfValueDepth = 512.0f;
-	FScreenPassTexture SceneTexture = FSceneVEProcess::AddSceneVETestPass(GraphBuilder, SceneView, InOutInputs, InputParameters);
+	FScreenPassTexture SceneTexture = FSceneVEProcess::AddThermalProcessPass(GraphBuilder, SceneView, InOutInputs, InputParameters);
 	return SceneTexture;
 }
 
-void FTestSceneExtension::UpdateHeatResourceArray(const TArray<FHeatResource>& NewArray)
+void FThermalVisionExt::UpdateHeatSources(const TArray<FHeatSourceMeta>& NewArray)
 {
-	HeatResources = NewArray;
+	HeatSources = NewArray;
 }
 
-TArray<FHeatResource> FTestSceneExtension::GetHeatResources()
+TArray<FHeatSourceMeta> FThermalVisionExt::GetHeatResources()
 {
-	return HeatResources;
+	return HeatSources;
 }

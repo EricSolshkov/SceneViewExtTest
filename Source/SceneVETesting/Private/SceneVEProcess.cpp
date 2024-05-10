@@ -6,6 +6,7 @@
 #include "SceneVEProcess.h"
 #include "ShaderDeclarations.h"
 #include "RenderGraphUtils.h"
+#include "RenderGraphResources.h"
 
 namespace
 {
@@ -79,11 +80,11 @@ inline FRDGTextureRef RegisterExternalTexture(FRDGBuilder& GraphBuilder, FRHITex
 }
 
 
-FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
+FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 	FRDGBuilder& GraphBuilder,
 	const FSceneView& SceneView,
 	const FPostProcessMaterialInputs& Inputs,
-	const MyComputeShaderInputParameters CSInputParameters)
+	const FCSInputParameters CSInputParameters)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -261,22 +262,21 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(OutputRTTextureRef));
 
 			// Create Structured Buffer for HeatResources
-			FRDGBufferRef HeatResourceRDGRef = CreateStructuredBuffer(
+			PassParameters->HeatResourceCount = CSInputParameters.HeatResources.Num();
+			FRDGBufferRef HeatSourceBufRef = CreateStructuredBuffer(
 				GraphBuilder,
 				TEXT("HeatResource"),
-				sizeof(FHeatResource),
+				sizeof(FHeatSourceMeta),
 				CSInputParameters.HeatResources.Num(),
 				CSInputParameters.HeatResources.GetData(),
-				CSInputParameters.HeatResources.Num() * sizeof(FHeatResource)
+				(CSInputParameters.HeatResources.Num() + 1) * sizeof(FHeatSourceMeta)  // + 1 to avoid 0 size buffer assignment
 			);
 
 			// Since HeatResources is read-only for shader, the view of buffer needs to be SRV.
 			// if using SRV, declaration in usf should be StructuredBuffer<> instead of RWSB<>
 			// RWSB<> is only for UAV.
-
-			FRDGBufferSRVRef HeatResourcesSRV = GraphBuilder.CreateSRV(HeatResourceRDGRef);
+			FRDGBufferSRVRef HeatResourcesSRV = GraphBuilder.CreateSRV(HeatSourceBufRef);
 			PassParameters->HeatResources = HeatResourcesSRV;
-			PassParameters->HeatResourceCount = CSInputParameters.HeatResources.Num();
 
 			// Pass Noise and SamplerState
 			PassParameters->Noise = CSInputParameters.Noise->TextureReference.TextureReferenceRHI;
@@ -300,7 +300,7 @@ FScreenPassTexture FSceneVEProcess::AddSceneVETestPass(
 
 			FComputeShaderUtils::AddPass(
 				GraphBuilder,
-				RDG_EVENT_NAME("SceneVETest CS Shader %dx%d", PassViewSize.X, PassViewSize.Y),
+				RDG_EVENT_NAME("ThermalProcess CS %dx%d", PassViewSize.X, PassViewSize.Y),
 				ComputeShader,
 				PassParameters,
 				GroupCount);

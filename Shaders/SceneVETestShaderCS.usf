@@ -14,7 +14,7 @@
 
 
 // HeatResource Struct Definition
-struct FHeatResource
+struct FHeatSourceMeta
 {
 	float3 Center;
 	float Radius;
@@ -23,7 +23,7 @@ struct FHeatResource
 
 // Parameters
 uint4 ViewportRect;
-StructuredBuffer<FHeatResource> HeatResources;
+StructuredBuffer<FHeatSourceMeta> HeatResources;
 uint HeatResourceCount;
 float LowCut;
 float TemperatureRange;

@@ -7,9 +7,9 @@
 #include "SceneVEComponent.h"
 #include "ScreenPass.h"
 
-struct MyComputeShaderInputParameters
+struct FCSInputParameters
 {
-	TArray<FHeatResource> HeatResources;
+	TArray<FHeatSourceMeta> HeatResources;
 	UVolumeTexture* Noise;
 	UTexture2D* ColorStripe;
 	float LowCut;
@@ -21,10 +21,10 @@ class FSceneVEProcess
 {
 public:
 	// Hook to the SceneViewExtension Base
-	static FScreenPassTexture AddSceneVETestPass(
+	static FScreenPassTexture AddThermalProcessPass(
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& View,
 		const FPostProcessMaterialInputs& Inputs,
-		const MyComputeShaderInputParameters CSInputParameters
+		const FCSInputParameters CSInputParameters
 		);
 };

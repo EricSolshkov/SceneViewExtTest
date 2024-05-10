@@ -21,6 +21,12 @@ public class SceneVETesting : ModuleRules
             "Renderer",
             "RHI",
             "Projects",
+            
+            // Customize Detail Panel Dependencies.
+            "Slate",
+            "SlateCore",
+            "UnrealEd",
+            "PropertyEditor"
             });
 
         var EngineDir = Path.GetFullPath(Target.RelativeEnginePath);

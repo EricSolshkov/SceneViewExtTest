@@ -4,14 +4,14 @@
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessMaterial.h"
 
-#include "HeatResource.h"
+#include "HeatSource.h"
 #include "SceneVEProcess.h"
 
 // Use FSceneViewExtensionBase to extend hook properly
-class FTestSceneExtension : public FSceneViewExtensionBase
+class FThermalVisionExt : public FSceneViewExtensionBase
 {
 public:
-	FTestSceneExtension(const FAutoRegister& AutoRegister);
+	FThermalVisionExt(const FAutoRegister& AutoRegister);
 
 	// These must all be set
 public:
@@ -25,7 +25,7 @@ public:
 	void SetEnabled(const bool NewEnabled) { this->Enabled = NewEnabled; UE_LOG(LogTemp, Log, TEXT("set to %sabled"), this->Enabled?"en":"dis");}
 	bool IsEnabled() { return this->Enabled;}
 	// This is our actual hook function
-	FScreenPassTexture TestPostProcessPass_RT(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& InOutInputs);
+	FScreenPassTexture ThermalVisionPass(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& InOutInputs);
 	
 	
 private:
@@ -36,10 +36,10 @@ public:
 
 	UTexture2D* ColorStripe = nullptr;
 	
-	TArray<FHeatResource> HeatResources;
+	TArray<FHeatSourceMeta> HeatSources;
 
-	void UpdateHeatResourceArray(const TArray<FHeatResource>& NewArray);
+	void UpdateHeatSources(const TArray<FHeatSourceMeta>& NewArray);
 
-	TArray<FHeatResource> GetHeatResources();
+	TArray<FHeatSourceMeta> GetHeatResources();
 };
 
