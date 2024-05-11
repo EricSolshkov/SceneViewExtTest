@@ -9,7 +9,8 @@
 
 struct FCSInputParameters
 {
-	TArray<FHeatSourceMeta> HeatResources;
+	TArray<FHeatSourceMeta> HeatSources;
+	int HeatSourceCount;
 	UVolumeTexture* Noise;
 	UTexture2D* ColorStripe;
 	float LowCut;

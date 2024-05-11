@@ -262,21 +262,21 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(OutputRTTextureRef));
 
 			// Create Structured Buffer for HeatResources
-			PassParameters->HeatResourceCount = CSInputParameters.HeatResources.Num();
+			PassParameters->HeatSourceCount = CSInputParameters.HeatSourceCount; // use HeatSourceCount, not Array.Num(). Size not equal if HeatSourceCount = 0 when a empty object is added into array.
 			FRDGBufferRef HeatSourceBufRef = CreateStructuredBuffer(
 				GraphBuilder,
 				TEXT("HeatResource"),
 				sizeof(FHeatSourceMeta),
-				CSInputParameters.HeatResources.Num(),
-				CSInputParameters.HeatResources.GetData(),
-				(CSInputParameters.HeatResources.Num() + 1) * sizeof(FHeatSourceMeta)  // + 1 to avoid 0 size buffer assignment
+				CSInputParameters.HeatSources.Num(),
+				CSInputParameters.HeatSources.GetData(),
+				CSInputParameters.HeatSources.Num() * sizeof(FHeatSourceMeta)
 			);
 
 			// Since HeatResources is read-only for shader, the view of buffer needs to be SRV.
 			// if using SRV, declaration in usf should be StructuredBuffer<> instead of RWSB<>
 			// RWSB<> is only for UAV.
-			FRDGBufferSRVRef HeatResourcesSRV = GraphBuilder.CreateSRV(HeatSourceBufRef);
-			PassParameters->HeatResources = HeatResourcesSRV;
+			FRDGBufferSRVRef HeatSourcesSRV = GraphBuilder.CreateSRV(HeatSourceBufRef);
+			PassParameters->HeatSources = HeatSourcesSRV;
 
 			// Pass Noise and SamplerState
 			PassParameters->Noise = CSInputParameters.Noise->TextureReference.TextureReferenceRHI;
