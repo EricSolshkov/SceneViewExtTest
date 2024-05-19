@@ -55,6 +55,18 @@ public:
 		return SurfaceTemperature;
 	}
 
+	UFUNCTION(BlueprintCallable)
+	void SetHighCutTemperature(const float NewTemperature);
+
+	UFUNCTION(BlueprintCallable)
+	float GetHighCutTemperature();
+
+	UFUNCTION(BlueprintCallable)
+	void SetLowCutTemperature(const float NewTemperature);
+
+	UFUNCTION(BlueprintCallable)
+	float GetLowCutTemperature();
+
 	// ThermalMgr设置Enable和Disable的意义在于切换专用热成像材质。
 	UFUNCTION(BlueprintCallable, CallInEditor)
 	void EnableThermalRendering();

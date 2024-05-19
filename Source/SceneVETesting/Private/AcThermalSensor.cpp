@@ -5,9 +5,6 @@
 #include "AcThermalManager.h"
 
 #include "Camera/CameraActor.h"
-#include "Camera/CameraComponent.h"
-#include "Engine/PostProcessVolume.h"
-#include "Interfaces/Interface_PostProcessVolume.h"
 
 
 // Sets default values for this component's properties
@@ -26,16 +23,19 @@ void UAcThermalSensor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	World = GetWorld();
+	if(!GetWorld()) return;
 
-	if (!World)
-	{
-		return;
-	}
+	CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
-	CameraManager = UGameplayStatics::GetPlayerCameraManager(World, 0);
+	CreateSceneViewExtension();
 	
+}
+
+// On a separate function to hook f.ex. for in editor creation etc.
+void UAcThermalSensor::CreateSceneViewExtension()
+{
+	ThermalSVExtension = FSceneViewExtensions::NewExtension<FThermalVisionExt>();
+	UE_LOG(LogTemp, Log, TEXT("UAcThermalSensor: Scene Extension Created!"));
 }
 
 
@@ -45,24 +45,60 @@ void UAcThermalSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (ThermalSVExtension->IsEnabled())
+	{
+		UpdateHeatSources();
+		ThermalSVExtension->HeatSources = HeatSources;
+		ThermalSVExtension->Noise = Noise;
+		ThermalSVExtension->ColorStripe = ColorStripe;
+	}
 	
+}
+
+void UAcThermalSensor::UpdateHeatSources()
+{
+	HeatSources.Empty();
+	TArray<UAcThermalManager*> ThmMgrs;
+	// iterate through all actor, get all heat source components of every actor
+	for(TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		TArray<UAcThermalManager*> Comps;
+		(*ActorItr)->GetComponents(Comps);
+		if(Comps.Num() > 0)
+		{
+			ThmMgrs.Append(Comps);
+		}
+	}
+	for (auto ThmMgr : ThmMgrs)
+	{
+		ThmMgr->AppendHeatSourcesMeta(HeatSources);
+	}
 }
 
 void UAcThermalSensor::EnableThermalVision()
 {
-	if (!World) return;
+	if (ThermalSVExtension)
+	{
+		ThermalSVExtension->SetEnabled(true);
+	}
 	
-	for (TActorIterator<AActor> ActorIter(World); ActorIter; ++ActorIter)
+	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
-		if (ThmMgr)
+
+		// This assignment does NOT guarantee ThmMge non-null.
+		// Because Create() returns null if *ActorIter contains no mesh comps(invisible).
+		if (ThmMgr == nullptr)
 		{
-			ThmMgr->EnableThermalRendering();
+			ThmMgr = UAcThermalManager::Create((*ActorIter), 30, true);
 		}
-		else
+
+		if(ThmMgr != nullptr)
 		{
-			UAcThermalManager::Create((*ActorIter), 30, true);
+			auto list1 = ThmMgr->GetOwner()->FindComponentByClass<UStaticMeshComponent>()->GetMaterials();
+			ThmMgr->EnableThermalRendering();
+			list1 = ThmMgr->GetOwner()->FindComponentByClass<UStaticMeshComponent>()->GetMaterials();
+			
 		}
 	}
 	IsThermalVisionEnabled = true;
@@ -70,9 +106,12 @@ void UAcThermalSensor::EnableThermalVision()
 
 void UAcThermalSensor::DisableThermalVision()
 {
-	if (!World) return;
+	if (ThermalSVExtension)
+	{
+		ThermalSVExtension->SetEnabled(false);
+	}
 	
-	for (TActorIterator<AActor> ActorIter(World); ActorIter; ++ActorIter)
+	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
 		if (ThmMgr)
@@ -90,42 +129,66 @@ bool UAcThermalSensor::GetThermalVisionEnabled()
 
 void UAcThermalSensor::SetColorStripe(UTexture2D* Tex)
 {
-	if (MaterialInstance) MaterialInstance->SetTextureParameterValue(FName("ColorStripe"), Tex);
+	ColorStripe = Tex;
 }
 
 void UAcThermalSensor::SetTemperatureLowCut(float Low)
 {
-	if (MaterialInstance)
+	if (ThermalSVExtension)
 	{
-		MaterialInstance->SetScalarParameterValue(FName("LowCut"), Low);
+		ThermalSVExtension->LowCut = Low;
+	}
+	
+	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
+	{
+		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
+		if (ThmMgr)
+		{
+			ThmMgr->SetLowCutTemperature(Low);
+		}
 	}
 }
 
 void UAcThermalSensor::SetTemperatureHighCut(float High)
 {
-	if (MaterialInstance)
+	if (ThermalSVExtension)
 	{
-		MaterialInstance->SetScalarParameterValue(FName("HighCut"), High);
+		ThermalSVExtension->HighCut = High;
+	}
+	
+	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
+	{
+		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
+		if (ThmMgr)
+		{
+			ThmMgr->SetHighCutTemperature(High);
+		}
 	}
 }
 
 float UAcThermalSensor::GetTemperatureLowCut()
 {
-	float LowCut = 0;
-	if (MaterialInstance)
+	if (ThermalSVExtension)
 	{
-		MaterialInstance->GetScalarParameterValue(FName("LowCut"), LowCut);
+		return ThermalSVExtension->LowCut;
 	}
-	return LowCut;
+	return 0;
 }
 
 float UAcThermalSensor::GetTemperatureHighCut()
 {
-	float HighCut = 0;
-	if (MaterialInstance)
+	if (ThermalSVExtension)
 	{
-		MaterialInstance->GetScalarParameterValue(FName("HighCut"), HighCut);
+		return ThermalSVExtension->HighCut;
 	}
-	return HighCut;
+	return 0;
+}
+
+void UAcThermalSensor::SetHalfValueDepth(float Depth)
+{
+	if (ThermalSVExtension)
+	{
+		ThermalSVExtension->HalfValueDepth = Depth;
+	}
 }
 

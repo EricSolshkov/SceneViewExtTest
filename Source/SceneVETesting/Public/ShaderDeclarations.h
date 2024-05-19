@@ -6,19 +6,19 @@
 #include "RenderGraphUtils.h"
 
 // Parameter Declaration
-BEGIN_SHADER_PARAMETER_STRUCT(FSceneVETestShaderParameters, )
+BEGIN_SHADER_PARAMETER_STRUCT(FThermalVisionPSParameters, )
 	SHADER_PARAMETER_RDG_TEXTURE(Texture2D, InputTexture)
 	SHADER_PARAMETER_SAMPLER(SamplerState, InputSampler)
 	RENDER_TARGET_BINDING_SLOTS()
 END_SHADER_PARAMETER_STRUCT()
 
-// Declare Test Shader Class
+// Declare Shader Classes
 
-class SCENEVETESTING_API FSceneVETestShaderVS : public FGlobalShader
+class SCENEVETESTING_API FThermalVisionVS : public FGlobalShader
 {
 public:
 	// Vertex Shader Declaration
-	DECLARE_GLOBAL_SHADER(FSceneVETestShaderVS)
+	DECLARE_GLOBAL_SHADER(FThermalVisionVS)
 
 	// Basic shader stuff
 	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
@@ -30,20 +30,20 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
 	}
 
-	FSceneVETestShaderVS() {}
+	FThermalVisionVS() {}
 
-	FSceneVETestShaderVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+	FThermalVisionVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 	}
 };
 
-class SCENEVETESTING_API FSceneVETestShaderPS : public FGlobalShader
+class SCENEVETESTING_API FThermalVisionPS : public FGlobalShader
 {
 public:
 	// RDG Pixel Shader Declaration
-	DECLARE_GLOBAL_SHADER(FSceneVETestShaderPS)
-	SHADER_USE_PARAMETER_STRUCT_WITH_LEGACY_BASE(FSceneVETestShaderPS, FGlobalShader)
+	DECLARE_GLOBAL_SHADER(FThermalVisionPS)
+	SHADER_USE_PARAMETER_STRUCT_WITH_LEGACY_BASE(FThermalVisionPS, FGlobalShader)
 
 	// Basic shader stuff
 	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
@@ -56,7 +56,7 @@ public:
 	}
 
 	// Use the parameters from previously delcared struct
-	using FParameters = FSceneVETestShaderParameters;
+	using FParameters = FThermalVisionPSParameters;
 
 };
 
@@ -65,11 +65,11 @@ BEGIN_SHADER_PARAMETER_STRUCT(FCommonShaderParameters, )
 	SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, ViewUniformBuffer)
 END_SHADER_PARAMETER_STRUCT()
 
-class SCENEVETESTING_API FSceneVETestShaderCS : public FGlobalShader
+class SCENEVETESTING_API FThermalVisionCS : public FGlobalShader
 {
 public:
-	DECLARE_GLOBAL_SHADER(FSceneVETestShaderCS)
-	SHADER_USE_PARAMETER_STRUCT(FSceneVETestShaderCS, FGlobalShader)
+	DECLARE_GLOBAL_SHADER(FThermalVisionCS)
+	SHADER_USE_PARAMETER_STRUCT(FThermalVisionCS, FGlobalShader)
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER_STRUCT_INCLUDE(FCommonShaderParameters, CommonParameters)
@@ -86,6 +86,7 @@ public:
 		SHADER_PARAMETER(float, LowCut)
 		SHADER_PARAMETER(float, TemperatureRange)
 		SHADER_PARAMETER(float, HalfValueDepth)
+		SHADER_PARAMETER(FVector, CameraDirection)
 
 		SHADER_PARAMETER_TEXTURE(Texture3D, Noise)
 		SHADER_PARAMETER_SAMPLER(SamplerState, NoiseSampler)
@@ -105,9 +106,6 @@ public:
 };
 
 // Shader implementation Macro doesn't work on .h file so load them here
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderPS, "/Plugins/SceneVETestPlugin/SceneVETestShaderPS.usf", "MainPS", SF_Pixel);
-// point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderVS, "/Plugins/SceneVETestPlugin/SceneVETestShaderVS.usf", "MainVS", SF_Vertex)
-; // point to the shader  file, name of the main function in shader.usf
-IMPLEMENT_GLOBAL_SHADER(FSceneVETestShaderCS, "/Plugins/SceneVETestPlugin/SceneVETestShaderCS.usf", "MainCS",
-						SF_Compute); // point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FThermalVisionPS, "/Plugins/SceneVETestPlugin/ThermalVisionPS.usf", "MainPS", SF_Pixel); // point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FThermalVisionVS, "/Plugins/SceneVETestPlugin/ThermalVisionVS.usf", "MainVS", SF_Vertex); // point to the shader  file, name of the main function in shader.usf
+IMPLEMENT_GLOBAL_SHADER(FThermalVisionCS, "/Plugins/SceneVETestPlugin/ThermalVisionCS.usf", "MainCS", SF_Compute); // point to the shader  file, name of the main function in shader.usf

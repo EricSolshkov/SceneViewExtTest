@@ -1,5 +1,7 @@
 ﻿#include "ThermalVisionExt.h"
 
+#include "AcThermalManager.h"
+
 // Functions needed for SceneViewExtension
 FThermalVisionExt::FThermalVisionExt(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
 {
@@ -18,7 +20,11 @@ void FThermalVisionExt::SubscribeToPostProcessingPass(EPostProcessingPass PassId
 {
 	if(!this->Enabled) return;
 
-	if(!Noise) return;
+	if(!Noise)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ExtensionSubscribe Failed: No valid noise texture."));
+		return;
+	};
 	
 	if (PassId == EPostProcessingPass::MotionBlur)
 	{
@@ -51,8 +57,7 @@ void FThermalVisionExt::SubscribeToPostProcessingPass(EPostProcessingPass PassId
 void FThermalVisionExt::PostRenderBasePass_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
 	FSceneViewExtensionBase::PostRenderBasePass_RenderThread(RHICmdList, InView);
-	if(!this->Enabled) return;
-	UE_LOG(LogTemp, Warning, TEXT("FThermalVisionExt: Pass is postBasePass!"));
+	
 }
 
 // Extension comes with the Graphbuilder and SceneView plus set of PostProcessMaterialInputs - more on these at SceneViewExtension.h
@@ -73,9 +78,17 @@ FScreenPassTexture FThermalVisionExt::ThermalVisionPass(FRDGBuilder& GraphBuilde
 	}
 	
 	InputParameters.HeatSources = HeatSources ;
-	InputParameters.LowCut = 0.0f;
-	InputParameters.TemperatureRange = 1.0f;
-	InputParameters.HalfValueDepth = 512.0f;
+	InputParameters.LowCut = LowCut;
+	if(abs(HighCut - LowCut) <= 0.1f)
+	{
+		InputParameters.TemperatureRange = 0.1f;
+	}
+	else
+	{
+		InputParameters.TemperatureRange = HighCut - LowCut;
+	}
+	
+	InputParameters.HalfValueDepth = HalfValueDepth;
 	FScreenPassTexture SceneTexture = FSceneVEProcess::AddThermalProcessPass(GraphBuilder, SceneView, InOutInputs, InputParameters);
 	return SceneTexture;
 }

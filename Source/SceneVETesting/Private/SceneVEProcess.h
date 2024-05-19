@@ -26,6 +26,6 @@ public:
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& View,
 		const FPostProcessMaterialInputs& Inputs,
-		const FCSInputParameters CSInputParameters
+		const FCSInputParameters& CSInputParameters
 		);
 };

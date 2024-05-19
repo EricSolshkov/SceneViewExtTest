@@ -14,8 +14,8 @@ namespace
 		TEXT("r.SceneVETest.Shader"),
 		1,
 		TEXT("Select shader to use in the post processing \n")
-		TEXT(" 0: Vertex & Pixel Shader (default);")
-		TEXT(" 1: Computer Shader."),
+		TEXT(" 0: Vertex & Pixel Shader ;")
+		TEXT(" 1: Computer Shader.(default)"),
 		ECVF_RenderThreadSafe);
 }
 
@@ -84,7 +84,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 	FRDGBuilder& GraphBuilder,
 	const FSceneView& SceneView,
 	const FPostProcessMaterialInputs& Inputs,
-	const FCSInputParameters CSInputParameters)
+	const FCSInputParameters& CSInputParameters)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -147,12 +147,12 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 
 			{
 				// Get the assigned shaders
-				TShaderMapRef<FSceneVETestShaderVS> VertexShader(GlobalShaderMap);
-				TShaderMapRef<FSceneVETestShaderPS> PixelShader(GlobalShaderMap);
+				TShaderMapRef<FThermalVisionVS> VertexShader(GlobalShaderMap);
+				TShaderMapRef<FThermalVisionPS> PixelShader(GlobalShaderMap);
 
 				// Pass the shader parameters
-				FSceneVETestShaderParameters* PassParameters = GraphBuilder.AllocParameters<
-					FSceneVETestShaderParameters>();
+				FThermalVisionPSParameters* PassParameters = GraphBuilder.AllocParameters<
+					FThermalVisionPSParameters>();
 				PassParameters->InputTexture = SceneColorRenderTarget.Texture;
 				PassParameters->InputSampler = TStaticSamplerState<>::GetRHI();
 				PassParameters->RenderTargets[0] = templateRenderTarget.GetRenderTargetBinding();
@@ -195,7 +195,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 		// Compute Shader version
 
 		// Here starts the RDG stuff
-		RDG_EVENT_SCOPE(GraphBuilder, "SceneVETestPass");
+		RDG_EVENT_SCOPE(GraphBuilder, "ThermalVisionComputePass");
 		{
 			// Accesspoint to our Shaders
 			FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(ViewFamily.GetFeatureLevel());
@@ -217,8 +217,8 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 				OutputDesc, TEXT("templateRenderTargetTexture"));
 
 			// Set the shader parameters
-			FSceneVETestShaderCS::FParameters* PassParameters = GraphBuilder.AllocParameters<
-				FSceneVETestShaderCS::FParameters>();
+			FThermalVisionCS::FParameters* PassParameters = GraphBuilder.AllocParameters<
+				FThermalVisionCS::FParameters>();
 
 			// Input is the SceneColor from PostProcess Material Inputs
 			PassParameters->SceneTextures = Inputs.SceneTextures.SceneTextures;
@@ -278,13 +278,17 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			FRDGBufferSRVRef HeatSourcesSRV = GraphBuilder.CreateSRV(HeatSourceBufRef);
 			PassParameters->HeatSources = HeatSourcesSRV;
 
+			const FMatrix& ViewMatrix = View->ShadowViewMatrices.GetViewMatrix();
+			const FVector CameraDirection = ViewMatrix.GetColumn(2);
+			PassParameters->CameraDirection = CameraDirection.GetSafeNormal();
+
 			// Pass Noise and SamplerState
 			PassParameters->Noise = CSInputParameters.Noise->TextureReference.TextureReferenceRHI;
 			PassParameters->NoiseSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
 
 			// Pass ColorStripe and SamplerState
 			PassParameters->ColorStripe = CSInputParameters.ColorStripe->TextureReference.TextureReferenceRHI;
-			PassParameters->ColorStripeSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap>::GetRHI();
+			PassParameters->ColorStripeSampler =  TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Wrap>::GetRHI();
 
 			// Pass control parameters
 			PassParameters->LowCut = CSInputParameters.LowCut;
@@ -296,7 +300,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			FIntPoint GroupSize(kDefaultGroupSize, kDefaultGroupSize);
 			FIntVector GroupCount = FComputeShaderUtils::GetGroupCount(PassViewSize, GroupSize);
 
-			TShaderMapRef<FSceneVETestShaderCS> ComputeShader(GlobalShaderMap);
+			TShaderMapRef<FThermalVisionCS> ComputeShader(GlobalShaderMap);
 
 			FComputeShaderUtils::AddPass(
 				GraphBuilder,

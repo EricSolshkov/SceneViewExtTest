@@ -55,16 +55,17 @@ void USceneVEComponent::CreateSceneViewExtension()
 
 void USceneVEComponent::UpdateHeatSources()
 {
-	// iterate through all actor, get all heat source components of every actor
-	TActorIterator<AActor> ActorItr = TActorIterator<AActor>(GetWorld());
+	HeatSources.Empty();
 	TArray<UAcThermalManager*> ThmMgrs;
-	HeatSources.Init(FHeatSourceMeta(), 0);
-	for(; ActorItr; ++ActorItr)
+	// iterate through all actor, get all heat source components of every actor
+	for(TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
-		TArray<UAcThermalManager*> Temp;
-		
-		ActorItr->GetComponents(Temp);
-		ThmMgrs.Append(Temp);
+		TArray<UAcThermalManager*> Comps;
+		(*ActorItr)->GetComponents(Comps);
+		if(Comps.Num() > 0)
+		{
+			ThmMgrs.Append(Comps);
+		}
 	}
 	for (auto ThmMgr : ThmMgrs)
 	{

@@ -39,6 +39,12 @@ public:
 	
 	TArray<FHeatSourceMeta> HeatSources;
 
+	float HighCut = 40.0f;
+	
+	float LowCut = 40.0f;
+
+	float HalfValueDepth = 512.0f;
+
 	void UpdateHeatSources(const TArray<FHeatSourceMeta>& NewArray);
 
 	TArray<FHeatSourceMeta> GetHeatResources();

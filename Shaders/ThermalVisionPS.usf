@@ -8,17 +8,16 @@
 
 Texture2D InputTexture;
 SamplerState InputSampler;
-float4x4 WorldToClip;
 
 void MainPS(
-float4 InPosition : SV_POSITION,
+	float4 InPosition : SV_POSITION,
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
     float4 InputColor = InputTexture.Sample(InputSampler, InUV.xy);
     InputColor = max(0.0, InputColor);
     InputColor = pow(InputColor, 1.0);
-    OutColor = InputColor;
+    OutColor = float4(InUV, 0, 1);
 }
 
 

@@ -16,6 +16,8 @@ UAcThermalManager::UAcThermalManager()
 	SurfaceTemperature = 64.0;
 
 	ThermalRenderingEnabled = false;
+
+	HeatSources.Empty();
 }
 
 void SaveOriginalMaterials(AActor* MyActor, UAcThermalManager* ATM)
@@ -34,8 +36,8 @@ void UAcThermalManager::BeginPlay()
 	
 	ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ThermalMaterialPtr::Get(), this);
 	
-	// Store oringinal mesh material.
-	auto MyActor = GetOwner();
+	// Store original mesh material.
+	const auto MyActor = GetOwner();
 
 	if (MyActor)
 	{
@@ -57,15 +59,50 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 }
 
+void UAcThermalManager::SetHighCutTemperature(const float NewTemperature)
+{
+	if(ThermalMaterialInstance)
+	{
+		MeshComponent->SetScalarParameterValueOnMaterials(FName("HighCut"), NewTemperature);
+	}
+}
+
+float UAcThermalManager::GetHighCutTemperature()
+{
+	if(ThermalMaterialInstance)
+	{
+		return MeshComponent->GetScalarParameterDefaultValue(FName("HighCut"));
+	}
+	return 0;
+}
+
+void UAcThermalManager::SetLowCutTemperature(const float NewTemperature)
+{
+	if(ThermalMaterialInstance)
+	{
+		MeshComponent->SetScalarParameterValueOnMaterials(FName("LowCut"), NewTemperature);
+	}
+}
+
+float UAcThermalManager::GetLowCutTemperature()
+{
+	if(ThermalMaterialInstance)
+	{
+		return MeshComponent->GetScalarParameterDefaultValue(FName("LowCut"));
+	}
+	return 0;
+}
+
 void UAcThermalManager::EnableThermalRendering()
 {
-	if (!ThermalRenderingEnabled && OriginalMaterials.Num() != 0 && ThermalMaterialInstance)
+	if (!ThermalRenderingEnabled && ThermalMaterialInstance)
 	{
+		ThermalRenderingEnabled = true;
+		
 		for (int i = 0; i < OriginalMaterials.Num(); ++i)
 		{
 			MeshComponent->SetMaterial(i, ThermalMaterialInstance);
 		}
-		ThermalRenderingEnabled = true;
 	}
 }
 
@@ -88,9 +125,11 @@ bool UAcThermalManager::GetThermalRenderingStatus()
 
 void UAcThermalManager::AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container)
 {
+	auto owner = this->GetOwner()->GetName();
 	for(auto Hr : HeatSources)
 	{
-		Container.Add(Hr->GetMeta());
+		if(IsValid(Hr))
+			Container.Add(Hr->GetMeta());
 	}
 }
 
@@ -102,25 +141,23 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 
     // Check to avoid creating duplicate ThermalManager
 	auto atm = Actor->FindComponentByClass<UAcThermalManager>();
-	if (atm) return nullptr;
+	if (atm) return atm;
 
 	FTransform Transform = UKismetMathLibrary::MakeTransform(
 		FVector(0.0, 0.0, 0.0),
 		FRotator(0.0, 0.0, 0.0),
 		FVector(1.0, 1.0, 1.0));
-	auto ac = Actor->AddComponentByClass(StaticClass(), false, Transform, false);
-	auto attached = Cast<UAcThermalManager, UActorComponent>(ac);
-	
+	const auto Component = Actor->AddComponentByClass(StaticClass(), false, Transform, false);
+	const auto ThermalManager = Cast<UAcThermalManager, UActorComponent>(Component);
 
-	if (attached)
-	{
-		attached->ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ThermalMaterialPtr::Get(), attached);
-		SaveOriginalMaterials(Actor, attached);
-		attached->SetSurfaceTemperature(Temperature);
-		if (Enabled) attached->EnableThermalRendering();
-	}
+	// Here we require and assume TargetThermalManagerComponent is not nullptr.
+	// if this assume fails program crashes here, check then.
+	ThermalManager->ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ThermalMaterialPtr::Get(), ThermalManager);
+	SaveOriginalMaterials(Actor, ThermalManager);
+	ThermalManager->SetSurfaceTemperature(Temperature);
+	if (Enabled) ThermalManager->EnableThermalRendering();
 	
-	return attached;
+	return ThermalManager;
 }
 
 
