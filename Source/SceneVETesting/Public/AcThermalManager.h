@@ -50,22 +50,22 @@ public:
 	}
 
 	UFUNCTION(BlueprintGetter, CallInEditor)
-	float GetSurfaceTemperature()
+	float GetSurfaceTemperature() const
 	{
 		return SurfaceTemperature;
 	}
 
 	UFUNCTION(BlueprintCallable)
-	void SetHighCutTemperature(const float NewTemperature);
+	void SetTemperatureHighCut(const float NewTemperature);
 
 	UFUNCTION(BlueprintCallable)
-	float GetHighCutTemperature();
+	float GetTemperatureHighCut();
 
 	UFUNCTION(BlueprintCallable)
-	void SetLowCutTemperature(const float NewTemperature);
+	void SetTemperatureLowCut(const float NewTemperature);
 
 	UFUNCTION(BlueprintCallable)
-	float GetLowCutTemperature();
+	float GetTemperatureLowCut();
 
 	// ThermalMgr设置Enable和Disable的意义在于切换专用热成像材质。
 	UFUNCTION(BlueprintCallable, CallInEditor)
@@ -82,4 +82,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static UAcThermalManager* Create(AActor* Actor,float Temperature, bool Enabled);
+
+
+	// Editor functions: Add, Modify HeatSources.
+#if WITH_EDITOR
+	
+#endif
 };

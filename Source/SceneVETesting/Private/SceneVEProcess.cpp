@@ -70,7 +70,8 @@ namespace
 // copy end
 
 // utility for using external texture resource
-inline FRDGTextureRef RegisterExternalTexture(FRDGBuilder& GraphBuilder, FRHITexture* Texture, const TCHAR* NameIfUnregistered)
+inline FRDGTextureRef RegisterExternalTexture(FRDGBuilder& GraphBuilder, FRHITexture* Texture,
+                                              const TCHAR* NameIfUnregistered)
 {
 	if (FRDGTextureRef FoundTexture = GraphBuilder.FindExternalTexture(Texture))
 	{
@@ -84,7 +85,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 	FRDGBuilder& GraphBuilder,
 	const FSceneView& SceneView,
 	const FPostProcessMaterialInputs& Inputs,
-	const FCSInputParameters& CSInputParameters)
+	const FThermalCSParams& CSInputParameters)
 {
 	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
 	const FSceneViewFamily& ViewFamily = *SceneView.Family;
@@ -108,7 +109,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 		// Vertex/Pixel Shader version
 
 		// Here starts the RDG stuff
-		RDG_EVENT_SCOPE(GraphBuilder, "SceneVETestPass");
+		RDG_EVENT_SCOPE(GraphBuilder, "ThermalVisionPass");
 		{
 			// Accesspoint to our Shaders
 			FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(ViewFamily.GetFeatureLevel());
@@ -159,7 +160,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 
 				// Add Pass by submitting the shaders and parameters to the GraphBuilder that takes care of scheduling it to the Renderthread 
 				GraphBuilder.AddPass(
-					RDG_EVENT_NAME("SceneVETestMainPass"),
+					RDG_EVENT_NAME("ThermalVisionMainPass"),
 					PassParameters,
 					ERDGPassFlags::Raster,
 					[&SceneView,
@@ -188,9 +189,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			return MoveTemp(templateRenderTarget);
 		}
 	}
-
 	else
-
 	{
 		// Compute Shader version
 
@@ -262,10 +261,11 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(OutputRTTextureRef));
 
 			// Create Structured Buffer for HeatResources
-			PassParameters->HeatSourceCount = CSInputParameters.HeatSourceCount; // use HeatSourceCount, not Array.Num(). Size not equal if HeatSourceCount = 0 when a empty object is added into array.
+			PassParameters->HeatSourceCount = CSInputParameters.HeatSourceCount;
+			// use HeatSourceCount, not Array.Num(). Size not equal if HeatSourceCount = 0 when a empty object is added into array.
 			FRDGBufferRef HeatSourceBufRef = CreateStructuredBuffer(
 				GraphBuilder,
-				TEXT("HeatResource"),
+				TEXT("HeatSources"),
 				sizeof(FHeatSourceMeta),
 				CSInputParameters.HeatSources.Num(),
 				CSInputParameters.HeatSources.GetData(),
@@ -284,11 +284,11 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 
 			// Pass Noise and SamplerState
 			PassParameters->Noise = CSInputParameters.Noise->TextureReference.TextureReferenceRHI;
-			PassParameters->NoiseSampler =  TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
+			PassParameters->NoiseSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 
 			// Pass ColorStripe and SamplerState
 			PassParameters->ColorStripe = CSInputParameters.ColorStripe->TextureReference.TextureReferenceRHI;
-			PassParameters->ColorStripeSampler =  TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Wrap>::GetRHI();
+			PassParameters->ColorStripeSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Wrap>::GetRHI();
 
 			// Pass control parameters
 			PassParameters->LowCut = CSInputParameters.LowCut;
@@ -319,4 +319,119 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 			return SceneColor;
 		}
 	}
+}
+
+FScreenPassTexture FSceneVEProcess::AddNightVisionBoostPass(
+	FRDGBuilder& GraphBuilder,
+	const FSceneView& SceneView,
+	const FPostProcessMaterialInputs& Inputs,
+	const FNightVisionBoostPSParams PSInputParameters)
+{
+	// SceneViewExtension gives SceneView, not ViewInfo so we need to setup some basics ourself
+	const FSceneViewFamily& ViewFamily = *SceneView.Family;
+	const ERHIFeatureLevel::Type FeatureLevel = SceneView.GetFeatureLevel();
+
+	const FScreenPassTexture& SceneColor = Inputs.Textures[(uint32)EPostProcessMaterialInput::SceneColor];
+
+	if (!SceneColor.IsValid())
+	{
+		return SceneColor;
+	}
+
+	// Vertex/Pixel Shader version
+
+	// Here starts the RDG stuff
+	RDG_EVENT_SCOPE(GraphBuilder, "NightVisionBoostPass");
+	{
+		// Accesspoint to our Shaders
+		FGlobalShaderMap* GlobalShaderMap = GetGlobalShaderMap(ViewFamily.GetFeatureLevel());
+
+		// Template Render Target to use as main output
+		FScreenPassRenderTarget templateRenderTarget;
+
+		// Check if this destination is the last one on the post process pipeline
+		if (Inputs.OverrideOutput.IsValid())
+		{
+			templateRenderTarget = Inputs.OverrideOutput;
+		}
+		else
+		// Otherwise make a template RenderTarget
+		{
+			FRDGTextureDesc OutputDesc = SceneColor.Texture->Desc;
+			OutputDesc.Flags |= TexCreate_RenderTargetable;
+			FLinearColor ClearColor(0., 0., 0., 0.);
+			OutputDesc.ClearValue = FClearValueBinding(ClearColor);
+
+			FRDGTexture* templateRenderTargetTexture = GraphBuilder.CreateTexture(
+				OutputDesc, TEXT("templateRenderTargetTexture"));
+			templateRenderTarget = FScreenPassRenderTarget(templateRenderTargetTexture, SceneColor.ViewRect,
+			                                               ERenderTargetLoadAction::EClear);
+		}
+
+		// The Viewport in source and destination might be different
+		const FScreenPassTextureViewport SceneColorViewport(SceneColor);
+		const FScreenPassTextureViewport tempRenderTargetViewport(templateRenderTarget);
+
+		FScreenPassRenderTarget SceneColorRenderTarget(SceneColor, ERenderTargetLoadAction::ELoad);
+
+		// We need these for the GraphBuilder AddPass
+		FRHIBlendState* DefaultBlendState = FScreenPassPipelineState::FDefaultBlendState::GetRHI();
+		FRHIDepthStencilState* DepthStencilState = FScreenPassPipelineState::FDefaultDepthStencilState::GetRHI();
+
+		{
+			// Get the assigned shaders
+			TShaderMapRef<FThermalVisionVS> VertexShader(GlobalShaderMap);
+			TShaderMapRef<FNightVisionBoostPS> PixelShader(GlobalShaderMap);
+
+			// Pass the shader parameters
+			FNightVisionBoostPSParameters* PassParameters = GraphBuilder.AllocParameters<
+				FNightVisionBoostPSParameters>();
+			PassParameters->InputTexture = SceneColorRenderTarget.Texture;
+			PassParameters->InputSampler = TStaticSamplerState<>::GetRHI();
+			PassParameters->RenderTargets[0] = templateRenderTarget.GetRenderTargetBinding();
+
+			// Add Pass by submitting the shaders and parameters to the GraphBuilder that takes care of scheduling it to the Renderthread 
+			GraphBuilder.AddPass(
+				RDG_EVENT_NAME("NightVisionBoostMainPass"),
+				PassParameters,
+				ERDGPassFlags::Raster,
+				[&SceneView,
+					VertexShader,
+					PixelShader,
+					DefaultBlendState,
+					DepthStencilState,
+					SceneColorViewport,
+					tempRenderTargetViewport,
+					PassParameters](FRHICommandListImmediate& RHICmdList)
+				{
+					DrawScreenPass(
+						RHICmdList,
+						SceneView,
+						tempRenderTargetViewport,
+						SceneColorViewport,
+						FScreenPassPipelineState(VertexShader, PixelShader, DefaultBlendState, DepthStencilState),
+						[&](FRHICommandListImmediate& RHICmdList)
+						{
+							SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(),
+							                    *PassParameters);
+						});
+				});
+		}
+		// Return the result
+		return MoveTemp(templateRenderTarget);
+	}
+}
+
+FScreenPassTexture FSceneVEProcess::AddSyntheticAperturePass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView,
+                                                             const FPostProcessMaterialInputs& Inputs,
+                                                             const FSyntheticApertureParams Params)
+{
+	UE_LOG(LogTemp, Warning, TEXT("FSceneVEProcess::AddSyntheticAperturePass is NOT implemented and will do nothing!"))
+
+	const FSceneViewFamily& ViewFamily = *SceneView.Family;
+	const ERHIFeatureLevel::Type FeatureLevel = SceneView.GetFeatureLevel();
+
+	const FScreenPassTexture& SceneColor = Inputs.Textures[(uint32)EPostProcessMaterialInput::SceneColor];
+
+	return SceneColor;
 }

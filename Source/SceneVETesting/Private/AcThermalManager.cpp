@@ -2,6 +2,9 @@
 
 
 #include "AcThermalManager.h"
+
+#include "Components/BillboardComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 
@@ -59,7 +62,7 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 }
 
-void UAcThermalManager::SetHighCutTemperature(const float NewTemperature)
+void UAcThermalManager::SetTemperatureHighCut(const float NewTemperature)
 {
 	if(ThermalMaterialInstance)
 	{
@@ -67,7 +70,7 @@ void UAcThermalManager::SetHighCutTemperature(const float NewTemperature)
 	}
 }
 
-float UAcThermalManager::GetHighCutTemperature()
+float UAcThermalManager::GetTemperatureHighCut()
 {
 	if(ThermalMaterialInstance)
 	{
@@ -76,7 +79,7 @@ float UAcThermalManager::GetHighCutTemperature()
 	return 0;
 }
 
-void UAcThermalManager::SetLowCutTemperature(const float NewTemperature)
+void UAcThermalManager::SetTemperatureLowCut(const float NewTemperature)
 {
 	if(ThermalMaterialInstance)
 	{
@@ -84,7 +87,7 @@ void UAcThermalManager::SetLowCutTemperature(const float NewTemperature)
 	}
 }
 
-float UAcThermalManager::GetLowCutTemperature()
+float UAcThermalManager::GetTemperatureLowCut()
 {
 	if(ThermalMaterialInstance)
 	{
@@ -125,7 +128,6 @@ bool UAcThermalManager::GetThermalRenderingStatus()
 
 void UAcThermalManager::AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container)
 {
-	auto owner = this->GetOwner()->GetName();
 	for(auto Hr : HeatSources)
 	{
 		if(IsValid(Hr))
@@ -138,6 +140,12 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	// Check to avoid creating redundant ThermalManager for invisible actors.
 	auto mesh = Actor->FindComponentByClass<UMeshComponent>();
 	if (!mesh) return nullptr;
+
+	// Check to avoid creating ThermalManager for billboard and text renderers.
+	auto bill = Cast<UBillboardComponent, UMeshComponent>(mesh);
+	if (bill) return nullptr;
+	auto text = Cast<UTextRenderComponent, UMeshComponent>(mesh);
+	if (text) return nullptr;
 
     // Check to avoid creating duplicate ThermalManager
 	auto atm = Actor->FindComponentByClass<UAcThermalManager>();

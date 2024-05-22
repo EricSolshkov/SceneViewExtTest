@@ -10,7 +10,7 @@
 #include "Components/ActorComponent.h"
 #include "Engine/VolumeTexture.h"
 
-#include "ThermalVisionExt.h"
+#include "IntegratedSVExt.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessMaterial.h"
 
@@ -53,5 +53,5 @@ public:
 
 private:
 	// this is the way to store the SceneExtensionView to keep it safe from not being destroyed - from: SceneViewExtension.h
-	TSharedPtr<class FThermalVisionExt, ESPMode::ThreadSafe > TestSceneExtension;
+	TSharedPtr<class FIntegratedSVExt, ESPMode::ThreadSafe > TestSceneExtension;
 };

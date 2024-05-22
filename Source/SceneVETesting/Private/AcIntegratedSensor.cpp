@@ -1,25 +1,23 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AcThermalSensor.h"
+#include "AcIntegratedSensor.h"
 #include "AcThermalManager.h"
 
 #include "Camera/CameraActor.h"
 
 
 // Sets default values for this component's properties
-UAcThermalSensor::UAcThermalSensor()
+UAcIntegratedSensor::UAcIntegratedSensor()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	IsThermalVisionEnabled = false;
 }
 
 
 // Called when the game starts
-void UAcThermalSensor::BeginPlay()
+void UAcIntegratedSensor::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -32,30 +30,38 @@ void UAcThermalSensor::BeginPlay()
 }
 
 // On a separate function to hook f.ex. for in editor creation etc.
-void UAcThermalSensor::CreateSceneViewExtension()
+void UAcIntegratedSensor::CreateSceneViewExtension()
 {
-	ThermalSVExtension = FSceneViewExtensions::NewExtension<FThermalVisionExt>();
-	UE_LOG(LogTemp, Log, TEXT("UAcThermalSensor: Scene Extension Created!"));
+	SVExt = FSceneViewExtensions::NewExtension<FIntegratedSVExt>();
+	UE_LOG(LogTemp, Log, TEXT("UAcIntegratedSensor: Scene Extension Created!"));
 }
 
 
 // Called every frame
-void UAcThermalSensor::TickComponent(float DeltaTime, ELevelTick TickType,
+void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
                                      FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (ThermalSVExtension->IsEnabled())
+	switch (SVExt->GetEnabledSensor())
 	{
+	case ThermalVision:
 		UpdateHeatSources();
-		ThermalSVExtension->HeatSources = HeatSources;
-		ThermalSVExtension->Noise = Noise;
-		ThermalSVExtension->ColorStripe = ColorStripe;
+		SVExt->HeatSources = HeatSources;
+		SVExt->Noise = Noise;
+		SVExt->ColorStripe = ColorStripe;
+		break;
+	case NightVisionBoost:
+		break;
+	case SyntheticAperture:
+		break;
+	default:
+		break;
 	}
 	
 }
 
-void UAcThermalSensor::UpdateHeatSources()
+void UAcIntegratedSensor::UpdateHeatSources()
 {
 	HeatSources.Empty();
 	TArray<UAcThermalManager*> ThmMgrs;
@@ -75,18 +81,34 @@ void UAcThermalSensor::UpdateHeatSources()
 	}
 }
 
-void UAcThermalSensor::EnableThermalVision()
+void UAcIntegratedSensor::EnableNightVisionBoost()
 {
-	if (ThermalSVExtension)
-	{
-		ThermalSVExtension->SetEnabled(true);
-	}
+	if(!SVExt.IsValid()) return;
+
+	if(SVExt->GetEnabledSensor() == ESensorType::ThermalVision) DisableThermalVision();
+
+	SVExt->SetEnabledSensor(ESensorType::NightVisionBoost);
+	
+}
+
+void UAcIntegratedSensor::DisableNightVisionBoost()
+{
+	if(!SVExt.IsValid()) return;
+
+	SVExt->SetEnabledSensor(ESensorType::None);
+}
+
+void UAcIntegratedSensor::EnableThermalVision()
+{
+	if (!SVExt.IsValid()) return;
+	
+	SVExt->SetEnabledSensor(ESensorType::ThermalVision);
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
 
-		// This assignment does NOT guarantee ThmMge non-null.
+		// This assignment does NOT guarantee ThmMgr non-null.
 		// Because Create() returns null if *ActorIter contains no mesh comps(invisible).
 		if (ThmMgr == nullptr)
 		{
@@ -95,21 +117,16 @@ void UAcThermalSensor::EnableThermalVision()
 
 		if(ThmMgr != nullptr)
 		{
-			auto list1 = ThmMgr->GetOwner()->FindComponentByClass<UStaticMeshComponent>()->GetMaterials();
 			ThmMgr->EnableThermalRendering();
-			list1 = ThmMgr->GetOwner()->FindComponentByClass<UStaticMeshComponent>()->GetMaterials();
-			
 		}
 	}
-	IsThermalVisionEnabled = true;
 }
 
-void UAcThermalSensor::DisableThermalVision()
+void UAcIntegratedSensor::DisableThermalVision()
 {
-	if (ThermalSVExtension)
-	{
-		ThermalSVExtension->SetEnabled(false);
-	}
+	if (!SVExt.IsValid()) return;
+	
+	SVExt->SetEnabledSensor(ESensorType::None);
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
@@ -119,24 +136,23 @@ void UAcThermalSensor::DisableThermalVision()
 			ThmMgr->DisableThermalRendering();
 		}
 	}
-	IsThermalVisionEnabled = false;
 }
 
-bool UAcThermalSensor::GetThermalVisionEnabled()
+bool UAcIntegratedSensor::GetThermalVisionEnabled()
 {
-	return IsThermalVisionEnabled;
+	return SVExt->GetEnabledSensor() == ESensorType::ThermalVision;
 }
 
-void UAcThermalSensor::SetColorStripe(UTexture2D* Tex)
+void UAcIntegratedSensor::SetColorStripe(UTexture2D* Tex)
 {
 	ColorStripe = Tex;
 }
 
-void UAcThermalSensor::SetTemperatureLowCut(float Low)
+void UAcIntegratedSensor::SetTemperatureLowCut(float Low)
 {
-	if (ThermalSVExtension)
+	if (SVExt)
 	{
-		ThermalSVExtension->LowCut = Low;
+		SVExt->LowCut = Low;
 	}
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
@@ -144,16 +160,16 @@ void UAcThermalSensor::SetTemperatureLowCut(float Low)
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
 		if (ThmMgr)
 		{
-			ThmMgr->SetLowCutTemperature(Low);
+			ThmMgr->SetTemperatureLowCut(Low);
 		}
 	}
 }
 
-void UAcThermalSensor::SetTemperatureHighCut(float High)
+void UAcIntegratedSensor::SetTemperatureHighCut(float High)
 {
-	if (ThermalSVExtension)
+	if (SVExt)
 	{
-		ThermalSVExtension->HighCut = High;
+		SVExt->HighCut = High;
 	}
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
@@ -161,34 +177,34 @@ void UAcThermalSensor::SetTemperatureHighCut(float High)
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
 		if (ThmMgr)
 		{
-			ThmMgr->SetHighCutTemperature(High);
+			ThmMgr->SetTemperatureHighCut(High);
 		}
 	}
 }
 
-float UAcThermalSensor::GetTemperatureLowCut()
+float UAcIntegratedSensor::GetTemperatureLowCut()
 {
-	if (ThermalSVExtension)
+	if (SVExt)
 	{
-		return ThermalSVExtension->LowCut;
+		return SVExt->LowCut;
 	}
 	return 0;
 }
 
-float UAcThermalSensor::GetTemperatureHighCut()
+float UAcIntegratedSensor::GetTemperatureHighCut()
 {
-	if (ThermalSVExtension)
+	if (SVExt)
 	{
-		return ThermalSVExtension->HighCut;
+		return SVExt->HighCut;
 	}
 	return 0;
 }
 
-void UAcThermalSensor::SetHalfValueDepth(float Depth)
+void UAcIntegratedSensor::SetHalfValueDepth(float Depth)
 {
-	if (ThermalSVExtension)
+	if (SVExt)
 	{
-		ThermalSVExtension->HalfValueDepth = Depth;
+		SVExt->HalfValueDepth = Depth;
 	}
 }
 

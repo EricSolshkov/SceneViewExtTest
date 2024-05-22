@@ -12,6 +12,12 @@ BEGIN_SHADER_PARAMETER_STRUCT(FThermalVisionPSParameters, )
 	RENDER_TARGET_BINDING_SLOTS()
 END_SHADER_PARAMETER_STRUCT()
 
+BEGIN_SHADER_PARAMETER_STRUCT(FNightVisionBoostPSParameters, )
+	SHADER_PARAMETER_RDG_TEXTURE(Texture2D, InputTexture)
+	SHADER_PARAMETER_SAMPLER(SamplerState, InputSampler)
+	RENDER_TARGET_BINDING_SLOTS()
+END_SHADER_PARAMETER_STRUCT()
+
 // Declare Shader Classes
 
 class SCENEVETESTING_API FThermalVisionVS : public FGlobalShader
@@ -105,7 +111,31 @@ public:
 	}
 };
 
+class SCENEVETESTING_API FNightVisionBoostPS : public FGlobalShader
+{
+public:
+	// RDG Pixel Shader Declaration
+	DECLARE_GLOBAL_SHADER(FNightVisionBoostPS)
+	SHADER_USE_PARAMETER_STRUCT_WITH_LEGACY_BASE(FNightVisionBoostPS, FGlobalShader)
+
+	// Basic shader stuff
+	static bool ShouldCompilePermutation(const FGlobalShaderPermutationParameters& Parameters)
+	{
+		return IsFeatureLevelSupported(Parameters.Platform, ERHIFeatureLevel::SM5);
+	}
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+	}
+
+	// Use the parameters from previously delcared struct
+	using FParameters = FNightVisionBoostPSParameters;
+
+};
+
 // Shader implementation Macro doesn't work on .h file so load them here
 IMPLEMENT_GLOBAL_SHADER(FThermalVisionPS, "/Plugins/SceneVETestPlugin/ThermalVisionPS.usf", "MainPS", SF_Pixel); // point to the shader  file, name of the main function in shader.usf
 IMPLEMENT_GLOBAL_SHADER(FThermalVisionVS, "/Plugins/SceneVETestPlugin/ThermalVisionVS.usf", "MainVS", SF_Vertex); // point to the shader  file, name of the main function in shader.usf
 IMPLEMENT_GLOBAL_SHADER(FThermalVisionCS, "/Plugins/SceneVETestPlugin/ThermalVisionCS.usf", "MainCS", SF_Compute); // point to the shader  file, name of the main function in shader.usf
+
+IMPLEMENT_GLOBAL_SHADER(FNightVisionBoostPS, "/Plugins/SceneVETestPlugin/NightVisionBoostPS.usf", "MainPS", SF_Pixel); // point to the shader  file, name of the main function in shader.usf

@@ -4,13 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "EngineUtils.h"
-#include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/ActorComponent.h"
 
 #include "SceneVEComponent.h"
 
-#include "AcThermalSensor.generated.h"
+#include "AcIntegratedSensor.generated.h"
 
 
 
@@ -21,29 +20,20 @@ enum EColorStripe
 	Inferno,
 };
 
-
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class SCENEVETESTING_API UAcThermalSensor : public UActorComponent
+class SCENEVETESTING_API UAcIntegratedSensor : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this component's properties
-	UAcThermalSensor();
+	UAcIntegratedSensor();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	APlayerCameraManager* CameraManager;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UMaterialInterface* ParentMaterial;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UMaterialInstanceDynamic* MaterialInstance;
-
-	bool IsThermalVisionEnabled;
 	
 	// this is the way to store the SceneExtensionView to keep it safe from not being destroyed - from: SceneViewExtension.h
-	TSharedPtr<class FThermalVisionExt, ESPMode::ThreadSafe > ThermalSVExtension;
+	TSharedPtr<class FIntegratedSVExt, ESPMode::ThreadSafe > SVExt;
 
 protected:
 	// Called when the game starts
@@ -69,7 +59,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
-
+	
 	UFUNCTION(BlueprintCallable, CallInEditor)
 	void EnableThermalVision();
 
@@ -109,5 +99,16 @@ public:
 
 	UFUNCTION(CallInEditor, BlueprintCallable)
 	void UpdateHeatSources();
-	
+
+	UFUNCTION(BlueprintCallable)
+	void EnableNightVisionBoost();
+
+	UFUNCTION(BlueprintCallable)
+	void DisableNightVisionBoost();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetNightVisionBoostEnabled() const
+	{
+		return (SVExt->GetEnabledSensor() == NightVisionBoost);
+	}
 };

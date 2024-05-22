@@ -24,9 +24,14 @@ USceneVEComponent::USceneVEComponent(const FObjectInitializer& ObjectInitializer
 
 void USceneVEComponent::SetEnabled(const bool Enabled)
 {
-	if(TestSceneExtension)
+	if(!TestSceneExtension) return;
+	if(Enabled)
 	{
-		this->TestSceneExtension->SetEnabled(Enabled);
+		this->TestSceneExtension->SetEnabledSensor(ThermalVision);
+	}
+	else
+	{
+		TestSceneExtension->SetEnabledSensor(None);
 	}
 }
 
@@ -49,7 +54,7 @@ void USceneVEComponent::BeginPlay()
 // On a separate function to hook f.ex. for in editor creation etc.
 void USceneVEComponent::CreateSceneViewExtension()
 {
-	TestSceneExtension = FSceneViewExtensions::NewExtension<FThermalVisionExt>();
+	TestSceneExtension = FSceneViewExtensions::NewExtension<FIntegratedSVExt>();
 	UE_LOG(LogTemp, Log, TEXT("TestSceneViewExtension: Scene Extension Created!"));
 }
 
@@ -77,7 +82,7 @@ void USceneVEComponent::UpdateHeatSources()
 void USceneVEComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (TestSceneExtension->IsEnabled())
+	if (TestSceneExtension->GetEnabledSensor())
 	{
 		UpdateHeatSources();
 		TestSceneExtension->HeatSources = HeatSources;
