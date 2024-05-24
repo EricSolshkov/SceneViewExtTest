@@ -33,6 +33,8 @@ void UAcIntegratedSensor::BeginPlay()
 void UAcIntegratedSensor::CreateSceneViewExtension()
 {
 	SVExt = FSceneViewExtensions::NewExtension<FIntegratedSVExt>();
+	SVExt->VolumeNoise = VolumeNoise;
+	SVExt->Noise2D = Noise2D;
 	UE_LOG(LogTemp, Log, TEXT("UAcIntegratedSensor: Scene Extension Created!"));
 }
 
@@ -48,10 +50,10 @@ void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 	case ThermalVision:
 		UpdateHeatSources();
 		SVExt->HeatSources = HeatSources;
-		SVExt->Noise = Noise;
 		SVExt->ColorStripe = ColorStripe;
 		break;
 	case NightVisionBoost:
+		SVExt->GameTime = GetWorld()->GetTimeSeconds();
 		break;
 	case SyntheticAperture:
 		break;
@@ -136,11 +138,6 @@ void UAcIntegratedSensor::DisableThermalVision()
 			ThmMgr->DisableThermalRendering();
 		}
 	}
-}
-
-bool UAcIntegratedSensor::GetThermalVisionEnabled()
-{
-	return SVExt->GetEnabledSensor() == ESensorType::ThermalVision;
 }
 
 void UAcIntegratedSensor::SetColorStripe(UTexture2D* Tex)

@@ -8,14 +8,14 @@ FHeatSourceMeta::FHeatSourceMeta()
 {
 	Center = FVector(0,0,0);
 	Radius = 0;
-	Color = FVector(0,0,0);
+	Temperature = 0.0f;
 }
 
-FHeatSourceMeta::FHeatSourceMeta(const FVector& iCenter, const FVector& iColor, float iRadius)
+FHeatSourceMeta::FHeatSourceMeta(const FVector& iCenter, float iRadius, float iTemperature)
 {
 	Center = iCenter;
 	Radius = iRadius;
-	Color = iColor;
+	Temperature = iTemperature;
 }
 
 // Sets default values
@@ -29,14 +29,6 @@ AHeatSource::AHeatSource()
 void AHeatSource::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-#if WITH_EDITOR
-	DrawDebugSphere(
-		GetWorld(),
-		GetTransform().GetLocation(),
-		CurrentSize,
-		32,
-		FColor(255,255,255));
-#endif
 }
 
 // Called when the game starts or when spawned
@@ -44,6 +36,10 @@ void AHeatSource::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnSize = 256;
+	if (AttachedActor != nullptr)
+	{
+		AttachToActor(AttachedActor, FAttachmentTransformRules::KeepRelativeTransform);
+	}
 }
 
 // Called every frame
@@ -63,9 +59,10 @@ void AHeatSource::Tick(float DeltaTime)
 	}
 }
 
-FHeatSourceMeta AHeatSource::GetMeta()
+FHeatSourceMeta AHeatSource::GetMeta(float LowCut, float HighCut)
 {
-	FHeatSourceMeta Meta = FHeatSourceMeta(GetTransform().GetLocation(), FVector(1,1,1), CurrentSize);
+	HighCut = (HighCut > LowCut + 0.1f) ? HighCut : (LowCut + 0.1f);
+	FHeatSourceMeta Meta = FHeatSourceMeta(GetTransform().GetLocation(), CurrentSize, (Temperature - LowCut) / (HighCut - LowCut));
 	return Meta;
 }
 

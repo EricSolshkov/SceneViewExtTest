@@ -7,8 +7,6 @@
 #include "Components/TextRenderComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
-
-
 // Sets default values for this component's properties
 UAcThermalManager::UAcThermalManager()
 {
@@ -19,6 +17,10 @@ UAcThermalManager::UAcThermalManager()
 	SurfaceTemperature = 64.0;
 
 	ThermalRenderingEnabled = false;
+
+	TemperatureHighCut = 40;
+
+	TemperatureLowCut = 20;
 
 	HeatSources.Empty();
 }
@@ -46,6 +48,12 @@ void UAcThermalManager::BeginPlay()
 	{
 		SaveOriginalMaterials(MyActor, this);
 	}
+	
+	if (ThermalMaterialInstance)
+	{
+		SetTemperatureHighCut(TemperatureHighCut);
+		SetTemperatureLowCut(TemperatureLowCut);
+	}
 }
 
 
@@ -56,14 +64,15 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update Thermal Material Temperature Parameter.
-	if (ThermalMaterialInstance)
+	if (ThermalMaterialInstance && ThermalRenderingEnabled)
 	{
-		MeshComponent->SetScalarParameterValueOnMaterials(FName("SurfaceTemperature"), SurfaceTemperature);
+		ThermalMaterialInstance->SetScalarParameterValue(FName("SurfaceTemperature"), SurfaceTemperature);
 	}
 }
 
 void UAcThermalManager::SetTemperatureHighCut(const float NewTemperature)
 {
+	TemperatureHighCut = NewTemperature;
 	if(ThermalMaterialInstance)
 	{
 		MeshComponent->SetScalarParameterValueOnMaterials(FName("HighCut"), NewTemperature);
@@ -72,15 +81,12 @@ void UAcThermalManager::SetTemperatureHighCut(const float NewTemperature)
 
 float UAcThermalManager::GetTemperatureHighCut()
 {
-	if(ThermalMaterialInstance)
-	{
-		return MeshComponent->GetScalarParameterDefaultValue(FName("HighCut"));
-	}
-	return 0;
+	return TemperatureHighCut;
 }
 
 void UAcThermalManager::SetTemperatureLowCut(const float NewTemperature)
 {
+	TemperatureLowCut = NewTemperature;
 	if(ThermalMaterialInstance)
 	{
 		MeshComponent->SetScalarParameterValueOnMaterials(FName("LowCut"), NewTemperature);
@@ -89,11 +95,7 @@ void UAcThermalManager::SetTemperatureLowCut(const float NewTemperature)
 
 float UAcThermalManager::GetTemperatureLowCut()
 {
-	if(ThermalMaterialInstance)
-	{
-		return MeshComponent->GetScalarParameterDefaultValue(FName("LowCut"));
-	}
-	return 0;
+	return TemperatureLowCut;
 }
 
 void UAcThermalManager::EnableThermalRendering()
@@ -107,6 +109,22 @@ void UAcThermalManager::EnableThermalRendering()
 			MeshComponent->SetMaterial(i, ThermalMaterialInstance);
 		}
 	}
+	auto name = GetOwner()->GetName();
+
+	float st, lc, hc;
+	ThermalMaterialInstance->GetScalarParameterValue(FName("SurfaceTemperature"), st);
+	ThermalMaterialInstance->GetScalarParameterValue(FName("LowCut"), lc);
+	ThermalMaterialInstance->GetScalarParameterValue(FName("HighCut"), hc);
+
+	for (auto IMat : MeshComponent->GetMaterials())
+	{
+		auto Mat = Cast<UMaterialInstanceDynamic, UMaterialInterface>(IMat);
+		Mat->GetScalarParameterValue(FName("SurfaceTemperature"), st);
+		Mat->GetScalarParameterValue(FName("LowCut"), lc);
+		Mat->GetScalarParameterValue(FName("HighCut"), hc);
+	}
+	
+	int b = 0;
 }
 
 void UAcThermalManager::DisableThermalRendering()
@@ -131,7 +149,7 @@ void UAcThermalManager::AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container
 	for(auto Hr : HeatSources)
 	{
 		if(IsValid(Hr))
-			Container.Add(Hr->GetMeta());
+			Container.Add(Hr->GetMeta(GetTemperatureLowCut(), GetTemperatureHighCut()));
 	}
 }
 
@@ -142,6 +160,8 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	if (!mesh) return nullptr;
 
 	// Check to avoid creating ThermalManager for billboard and text renderers.
+	// Due to ThermalVisionCS is working on each pixel and lack stencil check, billboard and text pixels will be mapped.
+	// this avoidance will NOT achieve its goal.
 	auto bill = Cast<UBillboardComponent, UMeshComponent>(mesh);
 	if (bill) return nullptr;
 	auto text = Cast<UTextRenderComponent, UMeshComponent>(mesh);

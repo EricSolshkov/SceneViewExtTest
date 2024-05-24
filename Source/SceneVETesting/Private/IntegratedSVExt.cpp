@@ -1,7 +1,6 @@
 ﻿#include "IntegratedSVExt.h"
 
 #include "AcIntegratedSensor.h"
-#include "AcThermalManager.h"
 
 // Functions needed for SceneViewExtension
 FIntegratedSVExt::FIntegratedSVExt(const FAutoRegister& AutoRegister) : FSceneViewExtensionBase(AutoRegister)
@@ -47,7 +46,7 @@ void FIntegratedSVExt::PostRenderBasePass_RenderThread(FRHICommandListImmediate&
 FScreenPassTexture FIntegratedSVExt::ThermalVisionPass(FRDGBuilder& GraphBuilder, const FSceneView& SceneView, const FPostProcessMaterialInputs& InOutInputs)
 {
 	FThermalCSParams InputParameters;
-	InputParameters.Noise = Noise;
+	InputParameters.Noise = VolumeNoise;
 	InputParameters.ColorStripe = ColorStripe;
 	InputParameters.HeatSourceCount = HeatSources.Num();
 
@@ -78,9 +77,12 @@ FScreenPassTexture FIntegratedSVExt::NightVisionBoostPass(FRDGBuilder& GraphBuil
 	const FPostProcessMaterialInputs& InOutInputs)
 {
 	FNightVisionBoostPSParams InputParameters;
-	InputParameters.BoostIntensity = 35;
-	InputParameters.Jitter = 0.01;
-	InputParameters.ColorStep = 0.00625;
+	InputParameters.Noise = Noise2D;
+	InputParameters.GameTime = GameTime;
+	InputParameters.AtmosphereFlickerIntensity = 0.01f;
+	InputParameters.BoostIntensity = 25.0f;
+	InputParameters.ColorStep = 0.00625f;
+	InputParameters.NoiseScale = 0.001f;
 	FScreenPassTexture SceneTexture = FSceneVEProcess::AddNightVisionBoostPass(
 		GraphBuilder, SceneView, InOutInputs, InputParameters);
 	return SceneTexture;

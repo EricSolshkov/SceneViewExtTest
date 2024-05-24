@@ -18,7 +18,7 @@ struct FHeatSourceMeta
 {
 	float3 Center;
 	float Radius;
-	float3 Color;
+	float Temperature;
 };
 
 // Parameters
@@ -82,7 +82,7 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	float4 AbsoluteWorldPosition = float4(SvPositionToWorld(SvPosition), 1.0f);
 
 	// Now the rest of the inputs( RGB to Grey Scale)
-	float3 HeatedColor = float3(0, 0, 0);
+	float Temperature = 0;
 	for (int i = 0; i < HeatSourceCount; ++i)
 	{
 		float3 Vec2Hit = AbsoluteWorldPosition.xyz - HeatSources[i].Center;
@@ -99,21 +99,14 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 
 		float3 NoisedSphereMask = RelativeRadiusClamp - ScaledInvNoise;
 		NoisedSphereMask = min(max(NoisedSphereMask, 0.00000000), 1.00000000);
-		HeatedColor += NoisedSphereMask;
+		Temperature = max(Temperature, lerp(GBuffer.BaseColor, HeatSources[i].Temperature, NoisedSphereMask));
 	}
 	
-	float3 HeatedBaseColor = HeatedColor + GBuffer.BaseColor;
-	float HeatedBaseRG = (HeatedBaseColor.r + HeatedBaseColor.g);
-	float HeatedBaseSum = (HeatedBaseRG + HeatedBaseColor.b);
+	float HeatedBaseRG = (GBuffer.BaseColor.r + GBuffer.BaseColor.g);
+	float HeatedBaseSum = (HeatedBaseRG + GBuffer.BaseColor.b);
 	float HeatedBase01 = (HeatedBaseSum / 3.00000000);
-
-	// Due To buffer clamped colors within 01, Map 01 temp to 01 color stripe is trival.
-	// Map to color stripe
-	//float HeatFromLowCut = HeatedBase01 - LowCut;
-	//const float ScaledHeat = HeatFromLowCut / TemperatureRange;
-	//float ClampedHeat = min(max(ScaledHeat, 0.00000000), 1.00000000);
-	//float4 MappedHeatedColor = Texture2DSample(ColorStripe, ColorStripeSampler, float2(ClampedHeat, 0.50000000));
-	float4 MappedHeatedColor = Texture2DSample(ColorStripe, ColorStripeSampler, float2(HeatedBase01, 0.50000000));
+	float HeatedBaseColor = Temperature + HeatedBase01;
+	float4 MappedHeatedColor = Texture2DSample(ColorStripe, ColorStripeSampler, float2(HeatedBaseColor, 0.50000000));
 
 	// Distance/Depth Decay
 	float InvDvcDepth = 1 / GBuffer.Depth;
@@ -125,11 +118,12 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 
 	// Fake AO Decay
 	float TowardOutsideScreen = abs(dot(GBuffer.WorldNormal, CameraDirection));
-	float Temp0 = (TowardOutsideScreen + 1.00000000);
-	float AODecay = (Temp0 / 2.00000000);
+	float Temp0 = (TowardOutsideScreen + 7.00000000);
+	float AODecay = (Temp0 / 8.00000000);
 	float FinalDecay = (DepthDecay * AODecay);
 
 	// Final decay.
 	float4 DecayedHeat = float4(MappedHeatedColor.rgb * FinalDecay, 1);
 	Output[View.ViewRectMin.xy + DispatchThreadId] = DecayedHeat;
+	//Output[View.ViewRectMin.xy + DispatchThreadId] = float4(HeatedBaseColor,HeatedBaseColor,HeatedBaseColor,1);
 }

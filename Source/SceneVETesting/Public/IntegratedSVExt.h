@@ -57,17 +57,21 @@ private:
 	ESensorType EnabledSensor;
 
 public:
-	UVolumeTexture* Noise = nullptr;
+	UVolumeTexture* VolumeNoise = nullptr;
 
+	UTexture2D* Noise2D = nullptr;
+	
 	UTexture2D* ColorStripe = nullptr;
 	
 	TArray<FHeatSourceMeta> HeatSources;
 
 	float HighCut = 40.0f;
 	
-	float LowCut = 40.0f;
+	float LowCut = 20.0f;
 
 	float HalfValueDepth = 512.0f;
+
+	float GameTime = 0.0f;
 
 	void AddSpecifiedExtenstion(FAfterPassCallbackDelegateArray& InOutPassCallbacks);
 };

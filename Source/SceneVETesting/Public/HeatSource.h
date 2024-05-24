@@ -11,7 +11,8 @@ UENUM(BlueprintType)
 enum class EHeatSourceShapeType : uint8
 {
 	Sphere UMETA(DisplayName = "Sphere"),
-	Box UMETA(DisplayName = "Box")
+	Box UMETA(DisplayName = "Box"),
+	Capsule UMETA(DisplayName = "Capsule")
 };
 
 USTRUCT(Blueprintable)
@@ -26,12 +27,12 @@ struct FHeatSourceMeta
 	float Radius;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Color;
+	float Temperature;
 	
 public:
 	FHeatSourceMeta();
 	
-	FHeatSourceMeta(const FVector& iCenter, const FVector& iColor, float iRadius);
+	FHeatSourceMeta(const FVector& iCenter, float iRadius, float iTemperature);
 };
 
 
@@ -47,25 +48,25 @@ public:
 	// Called on construction/spawn/property changed.
 	void OnConstruction(const FTransform& Transform) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Temperature;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SpawnTime;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EHeatSourceShapeType ShapeType = EHeatSourceShapeType::Sphere;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SpawnSize;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentSize;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AActor* AttachedActor;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInstancedStaticMeshComponent* MC_Shape;
 
 protected:
@@ -76,5 +77,5 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	FHeatSourceMeta GetMeta();
+	FHeatSourceMeta GetMeta(float LowCut, float HighCut);
 };

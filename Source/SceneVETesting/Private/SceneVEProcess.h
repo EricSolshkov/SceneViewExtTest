@@ -4,8 +4,13 @@
 // SceneVEProcess.cpp - Actual RDG hook and Shader Loading
 
 #pragma once
-#include "SceneVEComponent.h"
+
 #include "ScreenPass.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessMaterial.h"
+#include "Engine/VolumeTexture.h"
+
+#include "HeatSource.h"
 
 struct FThermalCSParams
 {
@@ -20,14 +25,17 @@ struct FThermalCSParams
 
 struct FNightVisionBoostPSParams
 {
+	UTexture2D* Noise;
+	float GameTime;
+	float AtmosphereFlickerIntensity;
 	float BoostIntensity;
-	float Jitter;
 	float ColorStep;
+	float NoiseScale;
 };
 
 struct FSyntheticApertureParams
 {
-	
+
 };
 
 class FSceneVEProcess
@@ -45,13 +53,13 @@ public:
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& SceneView,
 		const FPostProcessMaterialInputs& Inputs,
-		const FNightVisionBoostPSParams PSInputParameters
+		const FNightVisionBoostPSParams& Params
 		);
 
 	static FScreenPassTexture AddSyntheticAperturePass(
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& SceneView,
 		const FPostProcessMaterialInputs& Inputs,
-		const FSyntheticApertureParams Params
+		const FSyntheticApertureParams& Params
 		);
 };

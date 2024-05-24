@@ -5,6 +5,11 @@
 
 #include "RenderGraphUtils.h"
 
+// Struct to include common parameters, useful when doing multiple shaders
+BEGIN_SHADER_PARAMETER_STRUCT(FCommonShaderParameters, )
+	SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, ViewUniformBuffer)
+END_SHADER_PARAMETER_STRUCT()
+
 // Parameter Declaration
 BEGIN_SHADER_PARAMETER_STRUCT(FThermalVisionPSParameters, )
 	SHADER_PARAMETER_RDG_TEXTURE(Texture2D, InputTexture)
@@ -15,6 +20,13 @@ END_SHADER_PARAMETER_STRUCT()
 BEGIN_SHADER_PARAMETER_STRUCT(FNightVisionBoostPSParameters, )
 	SHADER_PARAMETER_RDG_TEXTURE(Texture2D, InputTexture)
 	SHADER_PARAMETER_SAMPLER(SamplerState, InputSampler)
+	SHADER_PARAMETER_TEXTURE(Texture2D, NoiseTex2D)
+	SHADER_PARAMETER_SAMPLER(SamplerState, NoiseSampler)
+	SHADER_PARAMETER(float, GameTime)
+	SHADER_PARAMETER(float, AtmosphereFlickerIntensity)
+	SHADER_PARAMETER(float, BoostIntensity)
+	SHADER_PARAMETER(float, ColorStep)
+	SHADER_PARAMETER(float, NoiseScale)
 	RENDER_TARGET_BINDING_SLOTS()
 END_SHADER_PARAMETER_STRUCT()
 
@@ -65,11 +77,6 @@ public:
 	using FParameters = FThermalVisionPSParameters;
 
 };
-
-// Struct to include common parameters, useful when doing multiple shaders
-BEGIN_SHADER_PARAMETER_STRUCT(FCommonShaderParameters, )
-	SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, ViewUniformBuffer)
-END_SHADER_PARAMETER_STRUCT()
 
 class SCENEVETESTING_API FThermalVisionCS : public FGlobalShader
 {

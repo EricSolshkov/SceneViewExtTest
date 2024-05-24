@@ -7,10 +7,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/ActorComponent.h"
 
-#include "SceneVEComponent.h"
+#include "HeatSource.h"
+#include "IntegratedSVExt.h"
 
 #include "AcIntegratedSensor.generated.h"
-
 
 
 enum EColorStripe
@@ -42,7 +42,10 @@ protected:
 	void CreateSceneViewExtension();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UVolumeTexture* Noise;
+	UVolumeTexture* VolumeNoise;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* Noise2D;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* ColorStripe;
@@ -67,7 +70,9 @@ public:
 	void DisableThermalVision();
 
 	UFUNCTION(BlueprintCallable, CallInEditor)
-	bool GetThermalVisionEnabled();
+	bool GetThermalVisionEnabled() const {
+		return SVExt->GetEnabledSensor() == ESensorType::ThermalVision;
+	}
 
 	UFUNCTION(BlueprintCallable)
 	void SetColorStripe(UTexture2D* Tex);

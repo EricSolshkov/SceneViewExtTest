@@ -25,8 +25,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<AHeatSource*> HeatSources;
 	
-	bool ThermalRenderingEnabled; 
+	bool ThermalRenderingEnabled;
 
+	float TemperatureLowCut;
+
+	float TemperatureHighCut;
+	
 	UMaterialInstanceDynamic* ThermalMaterialInstance;
 
 	UMeshComponent* MeshComponent;

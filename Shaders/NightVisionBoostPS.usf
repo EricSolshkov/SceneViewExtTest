@@ -5,19 +5,42 @@
 // We'll switch the colors just to test that the shader is working
 
 #include "/Engine/Public/Platform.ush"
+#include "/Engine/Private/Common.ush"
+#include "/Engine/Private/DeferredShadingCommon.ush"
 
 Texture2D InputTexture;
 SamplerState InputSampler;
+
+Texture2D NoiseTex2D;
+SamplerState NoiseSampler;
+
+float GameTime;
+float AtmosphereFlickerIntensity;
+float BoostIntensity;
+float ColorStep;
+float NoiseScale;
 
 void MainPS(
 	float4 InPosition : SV_POSITION,
 	float2 InUV : TEXCOORD0,
 	out float4 OutColor : SV_Target0)
 {
-    float4 InputColor = InputTexture.Sample(InputSampler, InUV.xy);
-    InputColor = max(0.0, InputColor);
-    InputColor = pow(InputColor, 1.0);
-    OutColor = float4(InUV, 0, 1);
+    // float4 SceneColor = InputTexture.Sample(InputSampler, InUV.xy);
+	float SinTime = GameTime / 10.0f;
+	const float2 SinShiftedUV = InUV + (float2)SinTime;
+	float4 TimeNoise = NoiseTex2D.SampleLevel(NoiseSampler, SinShiftedUV, 0);
+	const float AtmosphereFlicker = AtmosphereFlickerIntensity * TimeNoise.r;
+	const float2 AtmosphereFlickerUV = InUV.xy * 1.0f + AtmosphereFlicker;
+	float4 SceneColor =	InputTexture.SampleLevel(InputSampler, AtmosphereFlickerUV, 0);
+
+	const float3 Noise3 = NoiseScale * TimeNoise.rgb;
+	float3 NoisedSceneColor = SceneColor.rgb + Noise3;
+	const float GreenBoost = max(min(BoostIntensity * NoisedSceneColor.g, 1.000000), 0.0000000);
+	NoisedSceneColor.g = GreenBoost;
+
+	float3 StepRes = fmod(NoisedSceneColor, ColorStep);
+    OutColor = float4(NoisedSceneColor - StepRes, 1);
+    //OutColor = float4(TimeNoise.xyz, 1);
 }
 
 
