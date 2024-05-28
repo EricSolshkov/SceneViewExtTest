@@ -38,8 +38,11 @@ void SaveOriginalMaterials(AActor* MyActor, UAcThermalManager* ATM)
 void UAcThermalManager::BeginPlay()
 {
 	Super::BeginPlay();
+
+	const auto ParentMaterial = FThermalMaterialPtr::Get();
+	check(ParentMaterial);
 	
-	ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ThermalMaterialPtr::Get(), this);
+	ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, this);
 	
 	// Store original mesh material.
 	const auto MyActor = GetOwner();
@@ -64,8 +67,9 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update Thermal Material Temperature Parameter.
-	if (ThermalMaterialInstance && ThermalRenderingEnabled)
+	if (ThermalRenderingEnabled)
 	{
+		check(ThermalMaterialInstance)
 		ThermalMaterialInstance->SetScalarParameterValue(FName("SurfaceTemperature"), SurfaceTemperature);
 	}
 }
@@ -180,7 +184,10 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 
 	// Here we require and assume TargetThermalManagerComponent is not nullptr.
 	// if this assume fails program crashes here, check then.
-	ThermalManager->ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ThermalMaterialPtr::Get(), ThermalManager);
+	const auto ParentMaterial = FThermalMaterialPtr::Get();
+	check(ParentMaterial);
+	
+	ThermalManager->ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, ThermalManager);
 	SaveOriginalMaterials(Actor, ThermalManager);
 	ThermalManager->SetSurfaceTemperature(Temperature);
 	if (Enabled) ThermalManager->EnableThermalRendering();

@@ -1,12 +1,6 @@
 ﻿#include "ThermalMaterialPtr.h"
 
-UMaterial* ThermalMaterialPtr::Get()
+inline UMaterial* FThermalMaterialPtr::Get()
 {
-	if (!ThermalMaterial)
-	{
-		ThermalMaterial = LoadObject<UMaterial>(nullptr, TEXT("Material'/Plugin/SceneVETestPlugin/Content/M_Thermal.M_Thermal'"));
-	}
-	return ThermalMaterial;
+	return LoadObject<UMaterial>(nullptr, TEXT("Material'/SceneVETestPlugin/M_Thermal.M_Thermal'"));
 }
-
-UMaterial* ThermalMaterialPtr::ThermalMaterial = nullptr;

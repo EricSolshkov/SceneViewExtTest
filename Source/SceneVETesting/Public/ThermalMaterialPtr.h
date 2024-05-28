@@ -1,9 +1,8 @@
 ﻿#pragma once
 
-class SCENEVETESTING_API ThermalMaterialPtr
+class SCENEVETESTING_API FThermalMaterialPtr
 {
 public:
-	static UMaterial* ThermalMaterial;
 	static UMaterial* Get();
 	
 };

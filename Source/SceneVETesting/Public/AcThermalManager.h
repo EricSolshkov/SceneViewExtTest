@@ -7,6 +7,9 @@
 #include "ThermalMaterialPtr.h"
 #include "Components/ActorComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+
+#include "Engine/Private/Materials/MaterialInstanceSupport.h"
+
 #include "AcThermalManager.generated.h"
 
 //Component Thermal Manager Manages relative material and HeatSources of the attached actor.
@@ -30,11 +33,14 @@ public:
 	float TemperatureLowCut;
 
 	float TemperatureHighCut;
-	
+
+	UPROPERTY()
 	UMaterialInstanceDynamic* ThermalMaterialInstance;
 
+	UPROPERTY()
 	UMeshComponent* MeshComponent;
 
+	UPROPERTY()
 	TArray<UMaterialInterface*> OriginalMaterials;
 
 protected:
@@ -72,10 +78,10 @@ public:
 	float GetTemperatureLowCut();
 
 	// ThermalMgr设置Enable和Disable的意义在于切换专用热成像材质。
-	UFUNCTION(BlueprintCallable, CallInEditor)
+	UFUNCTION(BlueprintCallable)
 	void EnableThermalRendering();
 
-	UFUNCTION(BlueprintCallable, CallInEditor)
+	UFUNCTION(BlueprintCallable)
 	void DisableThermalRendering();
 
 	UFUNCTION(BlueprintCallable)
