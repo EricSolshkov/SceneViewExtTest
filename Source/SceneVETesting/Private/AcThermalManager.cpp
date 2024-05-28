@@ -188,6 +188,15 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	return ThermalManager;
 }
 
+void UAcThermalManager::AddHeatSource()
+{
+	// CreateDefaultSubObject works only in constructors.
+	// CreateNewObj can be called runtime.
+	const auto Hr = Cast<AHeatSource, AActor>(GetWorld()->SpawnActor(AHeatSource::StaticClass()));
+	HeatSources.Add(Hr);
+	Hr->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+}
+
 
 
 
