@@ -87,6 +87,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static UAcThermalManager* Create(AActor* Actor,float Temperature, bool Enabled);
 
+	UFUNCTION(BlueprintCallable, CallInEditor)
+	void AddHeatSource();
+
 
 	// Editor functions: Add, Modify HeatSources.
 #if WITH_EDITOR

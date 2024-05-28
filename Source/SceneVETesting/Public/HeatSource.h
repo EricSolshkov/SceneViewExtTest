@@ -36,7 +36,7 @@ public:
 };
 
 
-UCLASS()
+UCLASS(BlueprintType, Blueprintable)
 class SCENEVETESTING_API AHeatSource : public AActor
 {
 	GENERATED_BODY()
@@ -45,8 +45,10 @@ public:
 	// Sets default values for this actor's properties
 	AHeatSource();
 
+	AHeatSource(const FObjectInitializer& ObjectInitializer);
+
 	// Called on construction/spawn/property changed.
-	void OnConstruction(const FTransform& Transform) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Temperature;
@@ -64,9 +66,6 @@ public:
 	float CurrentSize;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	AActor* AttachedActor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInstancedStaticMeshComponent* MC_Shape;
 
 protected:
@@ -77,5 +76,5 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	FHeatSourceMeta GetMeta(float LowCut, float HighCut);
+	FHeatSourceMeta GetMeta(float LowCut, float HighCut) const;
 };
