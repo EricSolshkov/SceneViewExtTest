@@ -16,7 +16,10 @@ void FIntegratedSVExt::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 
 // This is called every frame, use to subscribe where needed
 //- left the possible PassId's just for quick testing, you actually need to test what you need
-void FIntegratedSVExt::SubscribeToPostProcessingPass(EPostProcessingPass PassId, FAfterPassCallbackDelegateArray& InOutPassCallbacks, bool bIsPassEnabled)
+void FIntegratedSVExt::SubscribeToPostProcessingPass(
+	EPostProcessingPass PassId,
+	FAfterPassCallbackDelegateArray& InOutPassCallbacks,
+	bool bIsPassEnabled)
 {
 	switch(PassId)
 	{
@@ -60,11 +63,7 @@ FScreenPassTexture FIntegratedSVExt::ThermalVisionPass(FRDGBuilder& GraphBuilder
 	InputParameters.LowCut = LowCut;
 	if(abs(HighCut - LowCut) <= 0.1f)
 	{
-		InputParameters.TemperatureRange = 0.1f;
-	}
-	else
-	{
-		InputParameters.TemperatureRange = HighCut - LowCut;
+		InputParameters.HighCut = LowCut + 0.1f;
 	}
 	
 	InputParameters.HalfValueDepth = HalfValueDepth;

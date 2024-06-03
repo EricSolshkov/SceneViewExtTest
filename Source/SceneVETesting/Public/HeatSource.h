@@ -47,9 +47,6 @@ public:
 
 	AHeatSource(const FObjectInitializer& ObjectInitializer);
 
-	// Called on construction/spawn/property changed.
-	virtual void OnConstruction(const FTransform& Transform) override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Temperature;
 
@@ -60,10 +57,10 @@ public:
 	EHeatSourceShapeType ShapeType = EHeatSourceShapeType::Sphere;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SpawnSize;
+	float SpawnSize = 256;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CurrentSize;
+	float CurrentSize = 256;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInstancedStaticMeshComponent* MC_Shape;
@@ -77,4 +74,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	FHeatSourceMeta GetMeta(float LowCut, float HighCut) const;
+
+	// for editor debug
+#if WITH_EDITOR
+	virtual bool ShouldTickIfViewportsOnly() const override; 
+#endif
 };

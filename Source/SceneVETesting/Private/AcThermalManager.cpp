@@ -160,22 +160,27 @@ void UAcThermalManager::AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container
 UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, bool Enabled)
 {
 	// Check to avoid creating redundant ThermalManager for invisible actors.
-	auto mesh = Actor->FindComponentByClass<UMeshComponent>();
+	const auto mesh = Actor->FindComponentByClass<UMeshComponent>();
 	if (!mesh) return nullptr;
+
+	// Avoid Create ThrMgr for HeatSources
+	const auto Hr = Cast<AHeatSource, AActor>(Actor);
+	if (IsValid(Hr)) return nullptr;
 
 	// Check to avoid creating ThermalManager for billboard and text renderers.
 	// Due to ThermalVisionCS is working on each pixel and lack stencil check, billboard and text pixels will be mapped.
 	// this avoidance will NOT achieve its goal.
-	auto bill = Cast<UBillboardComponent, UMeshComponent>(mesh);
-	if (bill) return nullptr;
-	auto text = Cast<UTextRenderComponent, UMeshComponent>(mesh);
-	if (text) return nullptr;
+	const auto Bill = Cast<UBillboardComponent, UMeshComponent>(mesh);
+	if (Bill) return nullptr;
+	const auto Text = Cast<UTextRenderComponent, UMeshComponent>(mesh);
+	if (Text) return nullptr;
+	
 
     // Check to avoid creating duplicate ThermalManager
-	auto atm = Actor->FindComponentByClass<UAcThermalManager>();
-	if (atm) return atm;
+	const auto Atm = Actor->FindComponentByClass<UAcThermalManager>();
+	if (Atm) return Atm;
 
-	FTransform Transform = UKismetMathLibrary::MakeTransform(
+	const FTransform Transform = UKismetMathLibrary::MakeTransform(
 		FVector(0.0, 0.0, 0.0),
 		FRotator(0.0, 0.0, 0.0),
 		FVector(1.0, 1.0, 1.0));

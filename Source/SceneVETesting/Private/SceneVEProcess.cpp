@@ -197,7 +197,7 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 
 		// Pass control parameters
 		PassParameters->LowCut = CSInputParameters.LowCut;
-		PassParameters->TemperatureRange = CSInputParameters.TemperatureRange;
+		PassParameters->HighCut = CSInputParameters.HighCut;
 		PassParameters->HalfValueDepth = CSInputParameters.HalfValueDepth;
 
 		// Set groupcount and execute pass

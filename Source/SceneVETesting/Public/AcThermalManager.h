@@ -95,10 +95,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, CallInEditor)
 	void AddHeatSource();
-
-
-	// Editor functions: Add, Modify HeatSources.
-#if WITH_EDITOR
-	
-#endif
 };

@@ -97,7 +97,7 @@ public:
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FHeatSourceMeta>, HeatSources)
 		SHADER_PARAMETER(uint32, HeatSourceCount)
 		SHADER_PARAMETER(float, LowCut)
-		SHADER_PARAMETER(float, TemperatureRange)
+		SHADER_PARAMETER(float, HighCut)
 		SHADER_PARAMETER(float, HalfValueDepth)
 		SHADER_PARAMETER(FVector, CameraDirection)
 

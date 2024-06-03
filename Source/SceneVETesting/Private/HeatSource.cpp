@@ -7,9 +7,10 @@
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
 
+
 FHeatSourceMeta::FHeatSourceMeta()
 {
-	Center = FVector(0,0,0);
+	Center = FVector(0, 0, 0);
 	Radius = 0;
 	Temperature = 0.0f;
 }
@@ -41,42 +42,49 @@ AHeatSource::AHeatSource(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	Temperature = 20;
 }
 
-void AHeatSource::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-
-#if WITH_EDITOR
-	if (ShapeType == EHeatSourceShapeType::Sphere)
-	{
-		DrawDebugSphere(GetWorld(),
-				  GetTransform().GetLocation(),
-				  CurrentSize,
-				  32,
-				  FColor(255, 255, 0),
-				  true);
-	}
-}
-#endif
-
 // Called when the game starts or when spawned
 void AHeatSource::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnSize = 256;
+	CurrentSize = SpawnSize;
 }
 
 // Called every frame
 void AHeatSource::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	CurrentSize = SpawnSize;
+#if WITH_EDITOR
+	if(!GWorld->HasBegunPlay())
+	{
+		if (ShapeType == EHeatSourceShapeType::Sphere)
+		{
+			auto aaa = GetTransform().GetLocation();
+			DrawDebugSphere(
+				GetWorld(),
+				aaa,
+				CurrentSize,
+				32,
+				FColor::Yellow,
+				false,
+				0);
+		}
+	}
+#endif
 }
 
 FHeatSourceMeta AHeatSource::GetMeta(float LowCut, float HighCut) const
 {
 	HighCut = (HighCut > LowCut + 0.1f) ? HighCut : (LowCut + 0.1f);
-	FHeatSourceMeta Meta = FHeatSourceMeta(GetTransform().GetLocation(), CurrentSize, (Temperature - LowCut) / (HighCut - LowCut));
+	FHeatSourceMeta Meta = FHeatSourceMeta(GetTransform().GetLocation(), CurrentSize,
+	                                       (Temperature - LowCut) / (HighCut - LowCut));
 	return Meta;
 }
 
+
+
+#if WITH_EDITOR
+bool AHeatSource::ShouldTickIfViewportsOnly() const
+{
+	return WITH_EDITOR;
+}
+#endif

@@ -19,7 +19,7 @@ struct FThermalCSParams
 	UVolumeTexture* Noise;
 	UTexture2D* ColorStripe;
 	float LowCut;
-	float TemperatureRange;
+	float HighCut;
 	float HalfValueDepth;
 };
 
