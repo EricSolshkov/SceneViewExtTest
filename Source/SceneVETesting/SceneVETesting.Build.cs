@@ -23,10 +23,10 @@ public class SceneVETesting : ModuleRules
             "Projects",
             
             // Customize Detail Panel Dependencies.
-            "Slate",
-            "SlateCore",
-            "UnrealEd",
-            "PropertyEditor"
+            //"Slate",
+            //"SlateCore",
+            //"UnrealEd",
+            //"PropertyEditor"
             });
 
         var EngineDir = Path.GetFullPath(Target.RelativeEnginePath);

@@ -3,9 +3,6 @@
 
 #include "AcThermalManager.h"
 #include "DrawDebugHelpers.h"
-#include "BaseGizmos/TransformGizmo.h"
-#include "BehaviorTree/BehaviorTreeTypes.h"
-#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 
 FHeatSourceMeta::FHeatSourceMeta()
