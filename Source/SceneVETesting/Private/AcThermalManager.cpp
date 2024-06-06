@@ -43,20 +43,15 @@ void UAcThermalManager::BeginPlay()
 	check(ParentMaterial);
 	
 	ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, this);
+	check(ThermalMaterialInstance);
 	
 	// Store original mesh material.
 	const auto MyActor = GetOwner();
-
-	if (MyActor)
-	{
-		SaveOriginalMaterials(MyActor, this);
-	}
+	check(MyActor);
+	SaveOriginalMaterials(MyActor, this);
 	
-	if (ThermalMaterialInstance)
-	{
-		SetTemperatureHighCut(TemperatureHighCut);
-		SetTemperatureLowCut(TemperatureLowCut);
-	}
+	SetTemperatureHighCut(TemperatureHighCut);
+	SetTemperatureLowCut(TemperatureLowCut);
 }
 
 
@@ -71,6 +66,8 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		check(ThermalMaterialInstance)
 		ThermalMaterialInstance->SetScalarParameterValue(FName("SurfaceTemperature"), SurfaceTemperature);
+		SetTemperatureHighCut(TemperatureHighCut);
+		SetTemperatureLowCut(TemperatureLowCut);
 	}
 }
 
