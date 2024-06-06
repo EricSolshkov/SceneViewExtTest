@@ -65,9 +65,9 @@ public:
 	
 	TArray<FHeatSourceMeta> HeatSources;
 
-	float HighCut = 40.0f;
+	float HighCut = 150.0f;
 	
-	float LowCut = 20.0f;
+	float LowCut = 0.0f;
 
 	float HalfValueDepth = 512.0f;
 

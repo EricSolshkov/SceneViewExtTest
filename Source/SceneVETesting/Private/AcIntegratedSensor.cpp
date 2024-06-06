@@ -55,7 +55,7 @@ void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 	case ThermalVision:
 		UpdateHeatSources();
-		SVExt->HeatSources = HeatSources;
+		
 		SVExt->ColorStripe = ColorStripe;
 		break;
 	case NightVisionBoost:
@@ -87,6 +87,7 @@ void UAcIntegratedSensor::UpdateHeatSources()
 	{
 		ThmMgr->AppendHeatSourcesMeta(HeatSources);
 	}
+	SVExt->HeatSources = HeatSources;
 }
 
 void UAcIntegratedSensor::EnableNightVisionBoost()

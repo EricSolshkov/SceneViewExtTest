@@ -39,7 +39,7 @@ AHeatSource::AHeatSource(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	PrimaryActorTick.bCanEverTick = true;
 	USceneComponent* SC = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	SetRootComponent(SC);
-	Temperature = 20;
+	Temperature = 100;
 }
 
 // Called when the game starts or when spawned

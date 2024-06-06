@@ -18,9 +18,9 @@ UAcThermalManager::UAcThermalManager()
 
 	ThermalRenderingEnabled = false;
 
-	TemperatureHighCut = 40;
+	TemperatureHighCut = 150;
 
-	TemperatureLowCut = 20;
+	TemperatureLowCut = 0;
 
 	HeatSources.Empty();
 }
