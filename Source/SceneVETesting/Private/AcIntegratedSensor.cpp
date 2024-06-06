@@ -41,6 +41,8 @@ void UAcIntegratedSensor::CreateSceneViewExtension()
 	SVExt = FSceneViewExtensions::NewExtension<FIntegratedSVExt>();
 	SVExt->VolumeNoise = VolumeNoise;
 	SVExt->Noise2D = Noise2D;
+	SetTemperatureHighCut(150);
+	SetTemperatureLowCut(0);
 	UE_LOG(LogTemp, Log, TEXT("UAcIntegratedSensor: Scene Extension Created!"));
 }
 
@@ -55,8 +57,8 @@ void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 	case ThermalVision:
 		UpdateHeatSources();
-		
 		SVExt->ColorStripe = ColorStripe;
+		SetTemperatureLowCut(GetTemperatureLowCut());
 		break;
 	case NightVisionBoost:
 		SVExt->GameTime = GetWorld()->GetTimeSeconds();

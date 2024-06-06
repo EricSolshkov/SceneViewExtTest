@@ -75,8 +75,10 @@ void AHeatSource::Tick(float DeltaTime)
 FHeatSourceMeta AHeatSource::GetMeta(float LowCut, float HighCut) const
 {
 	HighCut = (HighCut > LowCut + 0.1f) ? HighCut : (LowCut + 0.1f);
-	FHeatSourceMeta Meta = FHeatSourceMeta(GetTransform().GetLocation(), CurrentSize,
-	                                       (Temperature - LowCut) / (HighCut - LowCut));
+	FHeatSourceMeta Meta = FHeatSourceMeta(
+		GetTransform().GetLocation(),
+		CurrentSize,
+		Temperature);
 	return Meta;
 }
 

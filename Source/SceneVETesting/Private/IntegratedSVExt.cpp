@@ -65,6 +65,10 @@ FScreenPassTexture FIntegratedSVExt::ThermalVisionPass(FRDGBuilder& GraphBuilder
 	{
 		InputParameters.HighCut = LowCut + 0.1f;
 	}
+	else
+	{
+		InputParameters.HighCut = HighCut;
+	}
 	
 	InputParameters.HalfValueDepth = HalfValueDepth;
 	FScreenPassTexture SceneTexture = FSceneVEProcess::AddThermalProcessPass(
