@@ -25,6 +25,12 @@ void UAcIntegratedSensor::BeginPlay()
 
 	CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
+	VolumeNoise = LoadObject<UVolumeTexture>(nullptr, TEXT("VolumeTexture'/SceneVETestPlugin/VT_PerlinWorley_Balanced.VT_PerlinWorley_Balanced'"));
+	check(VolumeNoise);
+
+	Noise2D = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Engine/EngineMaterials/Good64x64TilingNoiseHighFreq.Good64x64TilingNoiseHighFreq'"));
+	check(Noise2D);
+	
 	CreateSceneViewExtension();
 	
 }

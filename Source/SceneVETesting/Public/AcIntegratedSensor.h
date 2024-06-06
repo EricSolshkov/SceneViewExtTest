@@ -41,10 +41,10 @@ protected:
 
 	void CreateSceneViewExtension();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	UVolumeTexture* VolumeNoise;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	UTexture2D* Noise2D;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
