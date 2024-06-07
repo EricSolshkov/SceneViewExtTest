@@ -45,7 +45,7 @@ public:
 	// Sets default values for this actor's properties
 	AHeatSource();
 
-	AHeatSource(const FObjectInitializer& ObjectInitializer);
+	explicit AHeatSource(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Temperature;
@@ -61,7 +61,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentSize = 256;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UInstancedStaticMeshComponent* MC_Shape;
 
