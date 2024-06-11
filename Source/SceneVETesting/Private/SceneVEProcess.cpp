@@ -166,22 +166,48 @@ FScreenPassTexture FSceneVEProcess::AddThermalProcessPass(
 		PassParameters->Output = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(OutputRTTextureRef));
 
 		// Create Structured Buffer for HeatResources
-		PassParameters->HeatSourceCount = CSInputParameters.HeatSourceCount;
+		PassParameters->SphereCount = CSInputParameters.SphereCount;
 		// use HeatSourceCount, not Array.Num(). Size not equal if HeatSourceCount = 0 when a empty object is added into array.
-		FRDGBufferRef HeatSourceBufRef = CreateStructuredBuffer(
+		const FRDGBufferRef SphereHeatSourceBufRef = CreateStructuredBuffer(
 			GraphBuilder,
-			TEXT("HeatSources"),
-			sizeof(FHeatSourceMeta),
-			CSInputParameters.HeatSources.Num(),
-			CSInputParameters.HeatSources.GetData(),
-			CSInputParameters.HeatSources.Num() * sizeof(FHeatSourceMeta)
+			TEXT("SphereHeatSources"),
+			sizeof(FSphereMeta),
+			CSInputParameters.SphereHeatSources.Num(),
+			CSInputParameters.SphereHeatSources.GetData(),
+			CSInputParameters.SphereHeatSources.Num() * sizeof(FSphereMeta)
 		);
 
 		// Since HeatResources is read-only for shader, the view of buffer needs to be SRV.
 		// if using SRV, declaration in usf should be StructuredBuffer<> instead of RWSB<>
 		// RWSB<> is only for UAV.
-		FRDGBufferSRVRef HeatSourcesSRV = GraphBuilder.CreateSRV(HeatSourceBufRef);
-		PassParameters->HeatSources = HeatSourcesSRV;
+		const FRDGBufferSRVRef SphereHeatSourcesSRV = GraphBuilder.CreateSRV(SphereHeatSourceBufRef);
+		PassParameters->SphereHeatSources = SphereHeatSourcesSRV;
+
+		// Handle Boxes.
+		PassParameters->BoxCount = CSInputParameters.BoxCount;
+		const FRDGBufferRef BoxHeatSourceBufRef = CreateStructuredBuffer(
+			GraphBuilder,
+			TEXT("BoxHeatSources"),
+			sizeof(FBoxMeta),
+			CSInputParameters.BoxHeatSources.Num(),
+			CSInputParameters.BoxHeatSources.GetData(),
+			CSInputParameters.BoxHeatSources.Num() * sizeof(FBoxMeta)
+		);
+		const FRDGBufferSRVRef BoxHeatSourcesSRV = GraphBuilder.CreateSRV(BoxHeatSourceBufRef);
+		PassParameters->BoxHeatSources = BoxHeatSourcesSRV;
+
+		// Handle Capsules.
+		PassParameters->CapsuleCount = CSInputParameters.CapsuleCount;
+		const FRDGBufferRef CapsuleHeatSourceBufRef = CreateStructuredBuffer(
+			GraphBuilder,
+			TEXT("CapsuleHeatSources"),
+			sizeof(FCapsuleMeta),
+			CSInputParameters.CapsuleHeatSources.Num(),
+			CSInputParameters.CapsuleHeatSources.GetData(),
+			CSInputParameters.CapsuleHeatSources.Num() * sizeof(FCapsuleMeta)
+		);
+		const FRDGBufferSRVRef CapsuleHeatSourcesSRV = GraphBuilder.CreateSRV(CapsuleHeatSourceBufRef);
+		PassParameters->CapsuleHeatSources = CapsuleHeatSourcesSRV;
 
 		const FMatrix& ViewMatrix = View->ShadowViewMatrices.GetViewMatrix();
 		const FVector CameraDirection = ViewMatrix.GetColumn(2);

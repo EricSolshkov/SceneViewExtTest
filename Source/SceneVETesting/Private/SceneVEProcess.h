@@ -10,12 +10,17 @@
 #include "PostProcess/PostProcessMaterial.h"
 #include "Engine/VolumeTexture.h"
 
-#include "HeatSource.h"
+#include "..\Public\HeatSource.h"
 
 struct FThermalCSParams
 {
-	TArray<FHeatSourceMeta> HeatSources;
-	int HeatSourceCount;
+	TArray<FSphereMeta> SphereHeatSources;
+	int SphereCount;
+	TArray<FBoxMeta> BoxHeatSources;
+	int BoxCount;
+	TArray<FCapsuleMeta> CapsuleHeatSources;
+	int CapsuleCount;
+	
 	UVolumeTexture* Noise;
 	UTexture2D* ColorStripe;
 	float LowCut;

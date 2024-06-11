@@ -63,7 +63,7 @@ public:
 	
 	UTexture2D* ColorStripe = nullptr;
 	
-	TArray<FHeatSourceMeta> HeatSources;
+	TArray<AHeatSourceBase*> HeatSources;
 
 	float HighCut = 150.0f;
 	

@@ -14,17 +14,39 @@
 
 
 // HeatSource Struct Definition
-struct FHeatSourceMeta
+struct FSphereMeta
 {
-	float3 Center;
+	float4x4 WorldToLocal;
 	float Radius;
 	float Temperature;
+	float Thickness;
+};
+
+struct FBoxMeta
+{
+	float4x4 WorldToLocal;
+	float3 XYZ;
+	float Temperature;
+	float Thickness;
+};
+
+struct FCapsuleMeta
+{
+	float4x4 WorldToLocal;
+	float Radius;
+	float HalfHeight;
+	float Temperature;
+	float Thickness;
 };
 
 // Parameters
 uint4 ViewportRect;
-StructuredBuffer<FHeatSourceMeta> HeatSources;
-uint HeatSourceCount;
+StructuredBuffer<FSphereMeta> SphereHeatSources;
+StructuredBuffer<FBoxMeta> BoxHeatSources;
+StructuredBuffer<FCapsuleMeta> CapsuleHeatSources;
+uint SphereCount;
+uint BoxCount;
+uint CapsuleCount;
 float LowCut;
 float HighCut;
 float HalfValueDepth;
@@ -44,14 +66,15 @@ RWTexture2D<float4> Output;
 // Reference method parameter
 //float UVScale;
 
-float CalcNoisedSphereMask(float3 WorldPosition, float3 Center, float Radius)
+float CalcNoisedSphereMask(float3 WorldPosition, FSphereMeta Sphere)
 {
-	float3 Vec2Hit = WorldPosition - Center;
+	float4 HomoVec2Hit = mul(Sphere.WorldToLocal, float4(WorldPosition, 1));
+	float3 Vec2Hit = HomoVec2Hit.xyz / HomoVec2Hit.w;
 	const float3 Local1 = dot(Vec2Hit, Vec2Hit);
 	const float Dist2Hit = sqrt(Local1).r;
-	const float Dist2HitScaled = (Dist2Hit / Radius);
-	const float Local4 = (1.00000000 - Dist2HitScaled);
-	const float RelativeRadiusClamp = (Local4 * 1.00000000);
+	const float Dist2HitScaled = (Dist2Hit / Sphere.Radius);
+	float RelativeRadiusClamp = (1.00000000 - Dist2HitScaled);
+	RelativeRadiusClamp = max(min(RelativeRadiusClamp / (1 - Sphere.Thickness), 1), 0);
 
 	const float3 ScaledWorldPosition = Vec2Hit.xyz / 256.0f;
 	const float NoiseSample = Texture3DSample(Noise, NoiseSampler, ScaledWorldPosition).r;
@@ -61,6 +84,48 @@ float CalcNoisedSphereMask(float3 WorldPosition, float3 Center, float Radius)
 	float3 NoisedSphereMask = RelativeRadiusClamp - ScaledInvNoise;
 	NoisedSphereMask = min(max(NoisedSphereMask, 0.00000000), 1.00000000);
 	return NoisedSphereMask;
+}
+
+float CalcNoisedBoxMask(float3 WorldPosition, FBoxMeta Box)
+{
+	float4 HomoVec2Hit = mul(Box.WorldToLocal, float4(WorldPosition, 1));
+	const float3 Vec2Hit = HomoVec2Hit.xyz / HomoVec2Hit.w;
+	const float3 ScaledVec2Hit = abs(Vec2Hit) / Box.XYZ;
+	const float3 Dist = (1 - ScaledVec2Hit);
+	const float3 local0 = min(Dist.y, Dist.z);
+	const float3 local1 = min(Dist.x, local0);
+	float RelativeRadiusClamp = min(1, max(0, local1));
+	RelativeRadiusClamp = max(min(RelativeRadiusClamp / (1 - Box.Thickness), 1), 0);
+
+	const float3 ScaledWorldPosition = Vec2Hit.xyz / 256.0f;
+	const float NoiseSample = Texture3DSample(Noise, NoiseSampler, ScaledWorldPosition).r;
+	const float InvNoise = 1.0f - NoiseSample;
+	const float ScaledInvNoise = InvNoise * 0.5f;
+
+	float3 NoisedBoxMask = RelativeRadiusClamp - ScaledInvNoise;
+	NoisedBoxMask = min(max(NoisedBoxMask, 0.00000000), 1.00000000);
+	return NoisedBoxMask;
+}
+
+float CalcNoisedCapsuleMask(float3 WorldPosition, FCapsuleMeta Capsule)
+{
+	float4 HomoVec2Hit = mul(Capsule.WorldToLocal, float4(WorldPosition, 1));
+	const float3 Vec2Hit = HomoVec2Hit.xyz / HomoVec2Hit.w;
+	float Proj2Axis = abs(Vec2Hit.z) - Capsule.HalfHeight + Capsule.Radius;
+	float ClampedProj = max(Proj2Axis, 0);
+	float3 ClampedVec = float3(Vec2Hit.xy, ClampedProj);
+	float3 ScaledClamped = ClampedVec / Capsule.Radius;
+	float RelativeRadiusClamp = max(min(1 - sqrt(dot(ScaledClamped, ScaledClamped)), 1), 0);
+	RelativeRadiusClamp = max(min(RelativeRadiusClamp / (1 - Capsule.Thickness), 1), 0);
+
+	const float3 ScaledWorldPosition = Vec2Hit.xyz / 256.0f;
+	const float NoiseSample = Texture3DSample(Noise, NoiseSampler, ScaledWorldPosition).r;
+	const float InvNoise = 1.0f - NoiseSample;
+	const float ScaledInvNoise = InvNoise * 0.5f;
+
+	float3 NoisedCapsuleMask = RelativeRadiusClamp - ScaledInvNoise;
+	NoisedCapsuleMask = min(max(NoisedCapsuleMask, 0.00000000), 1.00000000);
+	return NoisedCapsuleMask;
 }
 
 // Compute Shader code
@@ -101,19 +166,38 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 	float4 AbsoluteWorldPosition = float4(SvPositionToWorld(SvPosition), 1.0f);
 	
 	float Temperature = 0;
-	for (int i = 0; i < HeatSourceCount; ++i)
+	for (int i = 0; i < SphereCount; ++i)
 	{
 		float3 NoisedSphereMask = CalcNoisedSphereMask(
 			AbsoluteWorldPosition.xyz,
-			HeatSources[i].Center,
-			HeatSources[i].Radius);
-		float3 Vec2Center = HeatSources[i].Center - AbsoluteWorldPosition.xyz;
-		float NdotL = max(normalize(Vec2Center) * normalize(GBuffer.WorldNormal), 0);
+			SphereHeatSources[i]);
 		
 		float EquivalentTemperature =
-			(Pow4(HeatSources[i].Temperature + 273) - Pow4(LowCut + 273)) /
+			(Pow4(SphereHeatSources[i].Temperature + 273) - Pow4(LowCut + 273)) /
 			(Pow4(HighCut + 273) - Pow4(LowCut + 273));
 		Temperature = max(Temperature, lerp(GBuffer.BaseColor, EquivalentTemperature, NoisedSphereMask));
+	}
+	for (int i = 0; i < BoxCount; ++i)
+	{
+		float3 NoisedBoxMask = CalcNoisedBoxMask(
+			AbsoluteWorldPosition.xyz,
+			BoxHeatSources[i]);
+		
+		float EquivalentTemperature =
+			(Pow4(BoxHeatSources[i].Temperature + 273) - Pow4(LowCut + 273)) /
+			(Pow4(HighCut + 273) - Pow4(LowCut + 273));
+		Temperature = max(Temperature, lerp(GBuffer.BaseColor, EquivalentTemperature, NoisedBoxMask));
+	}
+	for (int i = 0; i < CapsuleCount; ++i)
+	{
+		float3 NoisedCapsuleMask = CalcNoisedCapsuleMask(
+			AbsoluteWorldPosition.xyz,
+			CapsuleHeatSources[i]);
+		
+		float EquivalentTemperature =
+			(Pow4(CapsuleHeatSources[i].Temperature + 273) - Pow4(LowCut + 273)) /
+			(Pow4(HighCut + 273) - Pow4(LowCut + 273));
+		Temperature = max(Temperature, lerp(GBuffer.BaseColor, EquivalentTemperature, NoisedCapsuleMask));
 	}
 	
 	float HeatedBaseRG = (GBuffer.BaseColor.r + GBuffer.BaseColor.g);
@@ -138,6 +222,6 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 
 	// Final decay.
 	float4 DecayedHeat = float4(MappedHeatedColor.rgb * FinalDecay, 1);
-	Output[View.ViewRectMin.xy + DispatchThreadId] = DecayedHeat;
+	Output[View.ViewRectMin.xy + DispatchThreadId] = 1 - Pow3(1 - DecayedHeat);
 	//Output[View.ViewRectMin.xy + DispatchThreadId] = float4(HeatedBaseColor,HeatedBaseColor,HeatedBaseColor,1);
 }

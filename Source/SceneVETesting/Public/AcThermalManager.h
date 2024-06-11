@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "HeatSource.h"
-#include "ThermalMaterialPtr.h"
 #include "Components/ActorComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -26,7 +25,7 @@ public:
 	float SurfaceTemperature;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<AHeatSource*> HeatSources;
+	TArray<AHeatSourceBase*> HeatSources;
 	
 	bool ThermalRenderingEnabled;
 
@@ -35,13 +34,16 @@ public:
 	float TemperatureHighCut;
 
 	UPROPERTY()
-	UMaterialInstanceDynamic* ThermalMaterialInstance;
+	TArray<UMaterialInstanceDynamic*> ThermalMaterialInstances;
 
 	UPROPERTY()
 	UMeshComponent* MeshComponent;
 
 	UPROPERTY()
 	TArray<UMaterialInterface*> OriginalMaterials;
+
+	UPROPERTY()
+	TArray<UTexture2D*> OriginalTexes;
 
 protected:
 	// Called when the game starts
@@ -88,11 +90,17 @@ public:
 	bool GetThermalRenderingStatus();
 
 	UFUNCTION(BlueprintCallable)
-	void AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container);
+	void AppendHeatSources(TArray<AHeatSourceBase*>& Container);
 
 	UFUNCTION(BlueprintCallable)
 	static UAcThermalManager* Create(AActor* Actor,float Temperature, bool Enabled);
 
 	UFUNCTION(BlueprintCallable, CallInEditor)
-	void AddHeatSource();
+	void AddSphere();
+	
+	UFUNCTION(BlueprintCallable, CallInEditor)
+	void AddBox();
+	
+	UFUNCTION(BlueprintCallable, CallInEditor)
+	void AddCapsule();
 };

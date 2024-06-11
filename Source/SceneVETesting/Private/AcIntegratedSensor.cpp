@@ -87,7 +87,7 @@ void UAcIntegratedSensor::UpdateHeatSources()
 	}
 	for (auto ThmMgr : ThmMgrs)
 	{
-		ThmMgr->AppendHeatSourcesMeta(HeatSources);
+		ThmMgr->AppendHeatSources(HeatSources);
 	}
 	SVExt->HeatSources = HeatSources;
 }

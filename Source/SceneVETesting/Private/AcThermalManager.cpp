@@ -2,6 +2,8 @@
 
 
 #include "AcThermalManager.h"
+#include "HeatSource.h"
+#include "ThermalMaterialPtr.h"
 
 #include "Components/BillboardComponent.h"
 #include "Components/TextRenderComponent.h"
@@ -27,23 +29,46 @@ UAcThermalManager::UAcThermalManager()
 
 void SaveOriginalMaterials(AActor* MyActor, UAcThermalManager* ATM)
 {
+	const auto ParentMaterial = FThermalMaterialPtr::Get();
+	check(ParentMaterial);
+	
 	ATM->MeshComponent = MyActor->FindComponentByClass<UMeshComponent>();
 	if (ATM->MeshComponent)
 	{
 		ATM->OriginalMaterials = ATM->MeshComponent->GetMaterials();
+		ATM->ThermalMaterialInstances.Empty();
+		ATM->OriginalTexes.Empty();
+		TArray<UTexture*> TexContainer = {};
+		for (const auto& M : ATM->OriginalMaterials)
+		{
+			TexContainer.Empty();
+			M->GetUsedTextures(
+				TexContainer,
+				EMaterialQualityLevel::Low,
+				false,
+				ERHIFeatureLevel::SM5,
+				false
+				);
+			if(TexContainer.Num() != 0) {
+				UTexture2D* T2D = Cast<UTexture2D>(TexContainer[0]);
+				ATM->OriginalTexes.Add(T2D);
+			}
+			else
+			{
+				ATM->OriginalTexes.Add((UTexture2D*)nullptr);
+			}
+			auto ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, ATM);
+			check(ThermalMaterialInstance);
+			ATM->ThermalMaterialInstances.Add(ThermalMaterialInstance);
+		}
 	}
+	
 }
 
 // Called when the game starts
 void UAcThermalManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	const auto ParentMaterial = FThermalMaterialPtr::Get();
-	check(ParentMaterial);
-	
-	ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, this);
-	check(ThermalMaterialInstance);
 	
 	// Store original mesh material.
 	const auto MyActor = GetOwner();
@@ -64,8 +89,13 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	// Update Thermal Material Temperature Parameter.
 	if (ThermalRenderingEnabled)
 	{
-		check(ThermalMaterialInstance)
-		ThermalMaterialInstance->SetScalarParameterValue(FName("SurfaceTemperature"), SurfaceTemperature);
+		for (auto i = 0; i < ThermalMaterialInstances.Num(); ++i)
+		{
+			ThermalMaterialInstances[i]->SetScalarParameterValue(FName("SurfaceTemperature"), SurfaceTemperature);
+			if(IsValid(OriginalTexes[i]))
+				ThermalMaterialInstances[i]->SetTextureParameterValue(FName("OriginalTex"), OriginalTexes[i]);
+		}
+		
 		SetTemperatureHighCut(TemperatureHighCut);
 		SetTemperatureLowCut(TemperatureLowCut);
 	}
@@ -74,10 +104,8 @@ void UAcThermalManager::TickComponent(float DeltaTime, ELevelTick TickType,
 void UAcThermalManager::SetTemperatureHighCut(const float NewTemperature)
 {
 	TemperatureHighCut = NewTemperature;
-	if(ThermalMaterialInstance)
-	{
+	if (GetThermalRenderingStatus())
 		MeshComponent->SetScalarParameterValueOnMaterials(FName("HighCut"), NewTemperature);
-	}
 }
 
 float UAcThermalManager::GetTemperatureHighCut()
@@ -88,10 +116,8 @@ float UAcThermalManager::GetTemperatureHighCut()
 void UAcThermalManager::SetTemperatureLowCut(const float NewTemperature)
 {
 	TemperatureLowCut = NewTemperature;
-	if(ThermalMaterialInstance)
-	{
+	if (GetThermalRenderingStatus())
 		MeshComponent->SetScalarParameterValueOnMaterials(FName("LowCut"), NewTemperature);
-	}
 }
 
 float UAcThermalManager::GetTemperatureLowCut()
@@ -101,31 +127,15 @@ float UAcThermalManager::GetTemperatureLowCut()
 
 void UAcThermalManager::EnableThermalRendering()
 {
-	if (!ThermalRenderingEnabled && ThermalMaterialInstance)
+	if (!ThermalRenderingEnabled)
 	{
 		ThermalRenderingEnabled = true;
 		
 		for (int i = 0; i < OriginalMaterials.Num(); ++i)
 		{
-			MeshComponent->SetMaterial(i, ThermalMaterialInstance);
+			MeshComponent->SetMaterial(i, ThermalMaterialInstances[i]);
 		}
 	}
-	auto name = GetOwner()->GetName();
-
-	float st, lc, hc;
-	ThermalMaterialInstance->GetScalarParameterValue(FName("SurfaceTemperature"), st);
-	ThermalMaterialInstance->GetScalarParameterValue(FName("LowCut"), lc);
-	ThermalMaterialInstance->GetScalarParameterValue(FName("HighCut"), hc);
-
-	for (auto IMat : MeshComponent->GetMaterials())
-	{
-		auto Mat = Cast<UMaterialInstanceDynamic, UMaterialInterface>(IMat);
-		Mat->GetScalarParameterValue(FName("SurfaceTemperature"), st);
-		Mat->GetScalarParameterValue(FName("LowCut"), lc);
-		Mat->GetScalarParameterValue(FName("HighCut"), hc);
-	}
-	
-	int b = 0;
 }
 
 void UAcThermalManager::DisableThermalRendering()
@@ -145,12 +155,12 @@ bool UAcThermalManager::GetThermalRenderingStatus()
 	return ThermalRenderingEnabled;
 }
 
-void UAcThermalManager::AppendHeatSourcesMeta(TArray<FHeatSourceMeta>& Container)
+void UAcThermalManager::AppendHeatSources(TArray<AHeatSourceBase*>& Container)
 {
 	for(auto Hr : HeatSources)
 	{
 		if(IsValid(Hr))
-			Container.Add(Hr->GetMeta(GetTemperatureLowCut(), GetTemperatureHighCut()));
+			Container.Add(Hr);
 	}
 }
 
@@ -161,7 +171,7 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	if (!mesh) return nullptr;
 
 	// Avoid Create ThrMgr for HeatSources
-	const auto Hr = Cast<AHeatSource, AActor>(Actor);
+	const auto Hr = Cast<AHeatSourceBase, AActor>(Actor);
 	if (IsValid(Hr)) return nullptr;
 
 	// Check to avoid creating ThermalManager for billboard and text renderers.
@@ -189,7 +199,6 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	const auto ParentMaterial = FThermalMaterialPtr::Get();
 	check(ParentMaterial);
 	
-	ThermalManager->ThermalMaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, ThermalManager);
 	SaveOriginalMaterials(Actor, ThermalManager);
 	ThermalManager->SetSurfaceTemperature(Temperature);
 	if (Enabled) ThermalManager->EnableThermalRendering();
@@ -197,11 +206,29 @@ UAcThermalManager* UAcThermalManager::Create(AActor* Actor, float Temperature, b
 	return ThermalManager;
 }
 
-void UAcThermalManager::AddHeatSource()
+void UAcThermalManager::AddSphere()
 {
 	// CreateDefaultSubObject works only in constructors.
 	// CreateNewObj can be called runtime.
-	const auto Hr = Cast<AHeatSource, AActor>(GetWorld()->SpawnActor(AHeatSource::StaticClass()));
+	const auto Hr = Cast<ASphereHeatSource, AActor>(GetWorld()->SpawnActor(ASphereHeatSource::StaticClass()));
+	HeatSources.Add(Hr);
+	Hr->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+}
+
+void UAcThermalManager::AddBox()
+{
+	// CreateDefaultSubObject works only in constructors.
+	// CreateNewObj can be called runtime.
+	const auto Hr = Cast<ABoxHeatSource, AActor>(GetWorld()->SpawnActor(ABoxHeatSource::StaticClass()));
+	HeatSources.Add(Hr);
+	Hr->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
+}
+
+void UAcThermalManager::AddCapsule()
+{
+	// CreateDefaultSubObject works only in constructors.
+	// CreateNewObj can be called runtime.
+	const auto Hr = Cast<ACapsuleHeatSource, AActor>(GetWorld()->SpawnActor(ACapsuleHeatSource::StaticClass()));
 	HeatSources.Add(Hr);
 	Hr->AttachToActor(GetOwner(), FAttachmentTransformRules::KeepRelativeTransform);
 }

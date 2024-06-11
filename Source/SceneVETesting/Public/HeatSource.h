@@ -10,73 +10,140 @@
 UENUM(BlueprintType)
 enum class EHeatSourceShapeType : uint8
 {
+	None UMETA(DisplayName = "None"),
 	Sphere UMETA(DisplayName = "Sphere"),
 	Box UMETA(DisplayName = "Box"),
 	Capsule UMETA(DisplayName = "Capsule")
 };
 
-USTRUCT(Blueprintable)
-struct FHeatSourceMeta
+struct FSphereMeta
 {
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Center;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FMatrix WorldToLocal;
 	float Radius;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float Temperature;
-	
-public:
-	FHeatSourceMeta();
-	
-	FHeatSourceMeta(const FVector& iCenter, float iRadius, float iTemperature);
+	float Thickness;
+
+	FSphereMeta() : WorldToLocal(FMatrix::Identity), Radius(0), Temperature(0), Thickness(1) {}
 };
 
-
-UCLASS(BlueprintType, Blueprintable)
-class SCENEVETESTING_API AHeatSource : public AActor
+struct FBoxMeta
 {
+	FMatrix WorldToLocal;
+	FVector XYZ;
+	float Temperature;
+	float Thickness;
+
+	FBoxMeta() : WorldToLocal(FMatrix::Identity), XYZ(FVector(0, 0, 0)), Temperature(0), Thickness(1) {}
+};
+
+struct FCapsuleMeta
+{
+	FMatrix WorldToLocal;
+	float Radius;
+	float HalfHeight;
+	float Temperature;
+	float Thickness;
+
+	FCapsuleMeta() : WorldToLocal(FMatrix::Identity), Radius(0), HalfHeight(0), Temperature(0), Thickness(1) {}
+};
+
+UCLASS(Abstract)
+class SCENEVETESTING_API AHeatSourceBase : public AActor{
 	GENERATED_BODY()
-
 public:
-	// Sets default values for this actor's properties
-	AHeatSource();
-
-	explicit AHeatSource(const FObjectInitializer& ObjectInitializer);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Temperature;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Thickness;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float SpawnTime;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EHeatSourceShapeType ShapeType = EHeatSourceShapeType::Sphere;
+	UPROPERTY()
+	EHeatSourceShapeType Shape;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SpawnSize = 256;
+	// Sets default values for this actor's properties
+	AHeatSourceBase();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CurrentSize = 256;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UInstancedStaticMeshComponent* MC_Shape;
+	explicit AHeatSourceBase(const FObjectInitializer& ObjectInitializer);
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	UFUNCTION(BlueprintPure)
+	virtual float GetTemperature() const { return Temperature; };
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	FHeatSourceMeta GetMeta(float LowCut, float HighCut) const;
+	UFUNCTION(BlueprintPure)
+	virtual float SetTemperature(const float Val) { Temperature = Val; return Val; };
 
 	// for editor debug
 #if WITH_EDITOR
-	virtual bool ShouldTickIfViewportsOnly() const override; 
+	virtual void Tick(float DeltaTime) override;
+	
+	virtual bool ShouldTickIfViewportsOnly() const override { return true; };
+
+	virtual void DrawDebugShape();
 #endif
+};
+
+UCLASS(Blueprintable)
+class SCENEVETESTING_API ASphereHeatSource : public AHeatSourceBase
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Radius;
+	
+	ASphereHeatSource();
+
+	explicit ASphereHeatSource(const FObjectInitializer& ObjectInitializer);
+	
+#if WITH_EDITOR
+	virtual void DrawDebugShape() override;
+#endif
+
+	FSphereMeta GetMeta() const;
+};
+
+UCLASS(Blueprintable)
+class SCENEVETESTING_API ABoxHeatSource : public AHeatSourceBase
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector XYZ;
+
+	ABoxHeatSource();
+	
+	explicit ABoxHeatSource(const FObjectInitializer& ObjectInitializer);
+	
+#if WITH_EDITOR
+	virtual void DrawDebugShape() override;
+#endif
+
+	FBoxMeta GetMeta() const;
+};
+
+UCLASS(Blueprintable)
+class SCENEVETESTING_API ACapsuleHeatSource : public AHeatSourceBase
+{
+	GENERATED_BODY()
+
+public:
+	ACapsuleHeatSource();
+
+	explicit ACapsuleHeatSource(const FObjectInitializer& ObjectInitializer);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Radius;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HalfHeight;
+
+#if WITH_EDITOR
+	virtual void DrawDebugShape() override;
+#endif
+
+	FCapsuleMeta GetMeta() const;
 };

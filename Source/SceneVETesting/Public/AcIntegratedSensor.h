@@ -53,7 +53,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<UTexture2D*> ColorStripeTextures;
 
-	TArray<FHeatSourceMeta> HeatSources;
+	TArray<AHeatSourceBase*> HeatSources;
 
 private:
 	int CurrentColorStripeIndex = 0;

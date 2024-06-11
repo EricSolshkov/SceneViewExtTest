@@ -3,24 +3,10 @@
 
 #include "AcThermalManager.h"
 #include "DrawDebugHelpers.h"
+#include "GeometryCollection/GeometryCollectionAlgo.h"
 
 
-FHeatSourceMeta::FHeatSourceMeta()
-{
-	Center = FVector(0, 0, 0);
-	Radius = 0;
-	Temperature = 0.0f;
-}
-
-FHeatSourceMeta::FHeatSourceMeta(const FVector& iCenter, float iRadius, float iTemperature)
-{
-	Center = iCenter;
-	Radius = iRadius;
-	Temperature = iTemperature;
-}
-
-// Sets default values
-AHeatSource::AHeatSource() : Super()
+AHeatSourceBase::AHeatSourceBase()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -28,62 +14,145 @@ AHeatSource::AHeatSource() : Super()
 	// Actor contains no default SC, if need transform, create sc & set it as root.
 	USceneComponent* SC = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	SetRootComponent(SC);
-	Temperature = 20;
+	Temperature = 100;
+	Shape = EHeatSourceShapeType::None;
 }
 
-AHeatSource::AHeatSource(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+AHeatSourceBase::AHeatSourceBase(const FObjectInitializer& ObjectInitializer)
 {
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	// Actor contains no default SC, if need transform, create sc & set it as root.
 	USceneComponent* SC = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	SetRootComponent(SC);
 	Temperature = 100;
+	Shape = EHeatSourceShapeType::None;
 }
 
-// Called when the game starts or when spawned
-void AHeatSource::BeginPlay()
-{
-	Super::BeginPlay();
-	CurrentSize = SpawnSize;
-}
-
-// Called every frame
-void AHeatSource::Tick(float DeltaTime)
+void AHeatSourceBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 #if WITH_EDITOR
-	if(!GWorld->HasBegunPlay())
+	if (!GWorld->HasBegunPlay() || this->IsSelected())
 	{
-		if (ShapeType == EHeatSourceShapeType::Sphere)
-		{
-			auto aaa = GetTransform().GetLocation();
-			DrawDebugSphere(
-				GetWorld(),
-				aaa,
-				CurrentSize,
-				32,
-				FColor::Yellow,
-				false,
-				0);
-		}
+		DrawDebugShape();
 	}
 #endif
 }
 
-FHeatSourceMeta AHeatSource::GetMeta(float LowCut, float HighCut) const
+void AHeatSourceBase::DrawDebugShape()
 {
-	HighCut = (HighCut > LowCut + 0.1f) ? HighCut : (LowCut + 0.1f);
-	FHeatSourceMeta Meta = FHeatSourceMeta(
+	return;
+}
+
+ASphereHeatSource::ASphereHeatSource()
+{
+	Super();
+	Shape = EHeatSourceShapeType::Sphere;
+	Radius = 256;
+}
+
+ASphereHeatSource::ASphereHeatSource(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	Shape = EHeatSourceShapeType::Sphere;
+	Radius = 256;
+}
+
+
+// Called every frame
+void ASphereHeatSource::DrawDebugShape()
+{
+	DrawDebugSphere(
+		GetWorld(),
 		GetTransform().GetLocation(),
-		CurrentSize,
-		Temperature);
+		Radius,
+		32,
+		FColor::Yellow,
+		false,
+		0);
+}
+
+FSphereMeta ASphereHeatSource::GetMeta() const
+{
+	FSphereMeta Meta;
+	Meta.WorldToLocal = GetTransform().ToMatrixNoScale().Inverse().GetTransposed();
+	Meta.Radius = Radius;
+	Meta.Temperature = Temperature;
+	Meta.Thickness = Thickness;
 	return Meta;
 }
 
-
-
-#if WITH_EDITOR
-bool AHeatSource::ShouldTickIfViewportsOnly() const
+ABoxHeatSource::ABoxHeatSource()
 {
-	return WITH_EDITOR;
+	Super();
+	Shape = EHeatSourceShapeType::Box;
+	XYZ = FVector(256, 256, 256);
 }
-#endif
+
+ABoxHeatSource::ABoxHeatSource(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	Shape = EHeatSourceShapeType::Box;
+	XYZ = FVector(256, 256, 256);
+}
+
+void ABoxHeatSource::DrawDebugShape()
+{
+	DrawDebugBox(
+		GetWorld(),
+		GetTransform().GetLocation(),
+		XYZ,
+		GetTransform().GetRotation(),
+		FColor::Yellow,
+		false,
+		0);
+}
+
+FBoxMeta ABoxHeatSource::GetMeta() const
+{
+	FBoxMeta Meta;
+	Meta.WorldToLocal = GetTransform().ToMatrixNoScale().Inverse().GetTransposed();
+	Meta.XYZ = XYZ;
+	Meta.Temperature = Temperature;
+	Meta.Thickness = Thickness;
+	return Meta;
+}
+
+ACapsuleHeatSource::ACapsuleHeatSource()
+{
+	Super();
+	Shape = EHeatSourceShapeType::Sphere;
+	Radius = 50;
+	HalfHeight = 50;
+}
+
+ACapsuleHeatSource::ACapsuleHeatSource(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	Shape = EHeatSourceShapeType::Capsule;
+	Radius = 50;
+	HalfHeight = 50;
+}
+
+void ACapsuleHeatSource::DrawDebugShape()
+{
+	DrawDebugCapsule(
+		GetWorld(),
+		GetTransform().GetLocation(),
+		HalfHeight,
+		Radius,
+		GetTransform().GetRotation(),
+		FColor::Yellow,
+		false,
+		0);
+}
+
+FCapsuleMeta ACapsuleHeatSource::GetMeta() const
+{
+	FCapsuleMeta Meta;
+	Meta.WorldToLocal = GetTransform().ToMatrixNoScale().Inverse().GetTransposed();
+	Meta.Temperature = Temperature;
+	Meta.Radius = Radius;
+	Meta.HalfHeight = HalfHeight < Radius ? Radius : HalfHeight;
+	Meta.Thickness = Thickness;
+	return Meta;
+}

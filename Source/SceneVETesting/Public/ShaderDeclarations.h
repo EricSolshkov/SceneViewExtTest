@@ -94,8 +94,12 @@ public:
 		SHADER_PARAMETER(FVector2D, SceneColorBufferInvSize)
 	
 #endif
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FHeatSourceMeta>, HeatSources)
-		SHADER_PARAMETER(uint32, HeatSourceCount)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FSphereMeta>, SphereHeatSources)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FBoxMeta>, BoxHeatSources)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FCapsuleMeta>, CapsuleHeatSources)
+		SHADER_PARAMETER(uint32, SphereCount)
+		SHADER_PARAMETER(uint32, BoxCount)
+		SHADER_PARAMETER(uint32, CapsuleCount)
 		SHADER_PARAMETER(float, LowCut)
 		SHADER_PARAMETER(float, HighCut)
 		SHADER_PARAMETER(float, HalfValueDepth)

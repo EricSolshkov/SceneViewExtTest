@@ -51,15 +51,6 @@ FScreenPassTexture FIntegratedSVExt::ThermalVisionPass(FRDGBuilder& GraphBuilder
 	FThermalCSParams InputParameters;
 	InputParameters.Noise = VolumeNoise;
 	InputParameters.ColorStripe = ColorStripe;
-	InputParameters.HeatSourceCount = HeatSources.Num();
-
-	// Add a null Meta obj to avoid pass nullptr when creating buffer.
-	if (InputParameters.HeatSourceCount == 0)
-	{
-		HeatSources.Add(FHeatSourceMeta());
-	}
-	
-	InputParameters.HeatSources = HeatSources ;
 	InputParameters.LowCut = LowCut;
 	if(abs(HighCut - LowCut) <= 0.1f)
 	{
@@ -69,8 +60,61 @@ FScreenPassTexture FIntegratedSVExt::ThermalVisionPass(FRDGBuilder& GraphBuilder
 	{
 		InputParameters.HighCut = HighCut;
 	}
-	
 	InputParameters.HalfValueDepth = HalfValueDepth;
+
+	// Filter heat sources
+	InputParameters.SphereCount = 0;
+	InputParameters.BoxCount = 0;
+	InputParameters.CapsuleCount = 0;
+	for (const auto HeatSource : HeatSources)
+	{
+		switch (HeatSource->Shape)
+		{
+		case EHeatSourceShapeType::Sphere: {
+			InputParameters.SphereCount++;
+			const auto Sphere = Cast<ASphereHeatSource>(HeatSource);
+			if (Sphere)
+				InputParameters.SphereHeatSources.Add(Sphere->GetMeta());
+			break;
+			}
+		case EHeatSourceShapeType::Box:
+			{
+				InputParameters.BoxCount++;
+				const auto Box = Cast<ABoxHeatSource>(HeatSource);
+				if (Box)
+					InputParameters.BoxHeatSources.Add(Box->GetMeta());
+				break;
+			}
+		case EHeatSourceShapeType::Capsule:
+			{
+				InputParameters.CapsuleCount++;
+				const auto Capsule = Cast<ACapsuleHeatSource>(HeatSource);
+				if (Capsule)
+					InputParameters.CapsuleHeatSources.Add(Capsule->GetMeta());
+				break;
+			}
+		default:
+			continue;
+		}
+	}
+	
+	// Add a null Meta obj to avoid pass nullptr when creating buffer.
+	if (InputParameters.SphereCount == 0)
+	{
+		InputParameters.SphereCount = 1;
+		InputParameters.SphereHeatSources.Add(FSphereMeta());
+	}
+	if (InputParameters.BoxCount == 0)
+	{
+		InputParameters.BoxCount = 1;
+		InputParameters.BoxHeatSources.Add(FBoxMeta());
+	}
+	if (InputParameters.CapsuleCount == 0)
+	{
+		InputParameters.CapsuleCount = 1;
+		InputParameters.CapsuleHeatSources.Add(FCapsuleMeta());
+	}
+	
 	FScreenPassTexture SceneTexture = FSceneVEProcess::AddThermalProcessPass(
 		GraphBuilder, SceneView, InOutInputs, InputParameters);
 	return SceneTexture;
