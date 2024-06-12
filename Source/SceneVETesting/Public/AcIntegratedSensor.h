@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/ActorComponent.h"
 
-#include "HeatSource.h"
 #include "IntegratedSVExt.h"
+#include "SVExtMgr.h"
+#include "HeatSource.h"
 
 #include "AcIntegratedSensor.generated.h"
 
@@ -39,21 +39,11 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	void CreateSceneViewExtension();
-
-	UPROPERTY(BlueprintReadWrite)
-	UVolumeTexture* VolumeNoise;
-
-	UPROPERTY(BlueprintReadWrite)
-	UTexture2D* Noise2D;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UTexture2D* ColorStripe;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<UTexture2D*> ColorStripeTextures;
-
-	TArray<AHeatSourceBase*> HeatSources;
 
 private:
 	int CurrentColorStripeIndex = 0;
@@ -69,15 +59,15 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor)
 	void DisableThermalVision();
 
-	UFUNCTION(BlueprintCallable, CallInEditor)
+	UFUNCTION(BlueprintCallable)
 	bool GetThermalVisionEnabled() const {
 		return SVExt->GetEnabledSensor() == ESensorType::ThermalVision;
 	}
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, CallInEditor)
 	void SetColorStripe(UTexture2D* Tex);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, CallInEditor)
 	void SwitchColorStripe()
 	{
 		if(ColorStripeTextures.Num() != 0)
@@ -101,9 +91,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetHalfValueDepth(float Depth);
-
-	UFUNCTION(CallInEditor, BlueprintCallable)
-	void UpdateHeatSources();
 
 	UFUNCTION(BlueprintCallable)
 	void EnableNightVisionBoost();

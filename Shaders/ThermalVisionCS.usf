@@ -216,12 +216,12 @@ void MainCS(uint2 DispatchThreadId : SV_DispatchThreadID)
 
 	// Fake AO Decay
 	float TowardOutsideScreen = abs(dot(GBuffer.WorldNormal, CameraDirection));
-	float Temp0 = (TowardOutsideScreen + 7.00000000);
-	float AODecay = (Temp0 / 8.00000000);
+	float Temp0 = (TowardOutsideScreen + 1.00000000);
+	float AODecay = (Temp0 / 2.00000000);
 	float FinalDecay = (DepthDecay * AODecay);
 
 	// Final decay.
 	float4 DecayedHeat = float4(MappedHeatedColor.rgb * FinalDecay, 1);
-	Output[View.ViewRectMin.xy + DispatchThreadId] = 1 - Pow3(1 - DecayedHeat);
+	Output[View.ViewRectMin.xy + DispatchThreadId] = pow(DecayedHeat, 1/2.2);
 	//Output[View.ViewRectMin.xy + DispatchThreadId] = float4(HeatedBaseColor,HeatedBaseColor,HeatedBaseColor,1);
 }

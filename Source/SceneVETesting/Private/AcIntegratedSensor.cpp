@@ -25,27 +25,9 @@ void UAcIntegratedSensor::BeginPlay()
 
 	CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
-	VolumeNoise = LoadObject<UVolumeTexture>(nullptr, TEXT("VolumeTexture'/SceneVETestPlugin/VT_PerlinWorley_Balanced.VT_PerlinWorley_Balanced'"));
-	check(VolumeNoise);
-
-	Noise2D = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Engine/EngineMaterials/Good64x64TilingNoiseHighFreq.Good64x64TilingNoiseHighFreq'"));
-	check(Noise2D);
-	
-	CreateSceneViewExtension();
-	
-}
-
-// On a separate function to hook f.ex. for in editor creation etc.
-void UAcIntegratedSensor::CreateSceneViewExtension()
-{
-	SVExt = FSceneViewExtensions::NewExtension<FIntegratedSVExt>();
-	SVExt->VolumeNoise = VolumeNoise;
-	SVExt->Noise2D = Noise2D;
 	SetTemperatureHighCut(150);
 	SetTemperatureLowCut(0);
-	UE_LOG(LogTemp, Log, TEXT("UAcIntegratedSensor: Scene Extension Created!"));
 }
-
 
 // Called every frame
 void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -56,8 +38,7 @@ void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 	switch (SVExt->GetEnabledSensor())
 	{
 	case ThermalVision:
-		UpdateHeatSources();
-		SVExt->ColorStripe = ColorStripe;
+		SetColorStripe(ColorStripe);
 		SetTemperatureLowCut(GetTemperatureLowCut());
 		break;
 	case NightVisionBoost:
@@ -71,30 +52,9 @@ void UAcIntegratedSensor::TickComponent(float DeltaTime, ELevelTick TickType,
 	
 }
 
-void UAcIntegratedSensor::UpdateHeatSources()
-{
-	HeatSources.Empty();
-	TArray<UAcThermalManager*> ThmMgrs;
-	// iterate through all actor, get all heat source components of every actor
-	for(TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
-	{
-		TArray<UAcThermalManager*> Comps;
-		(*ActorItr)->GetComponents(Comps);
-		if(Comps.Num() > 0)
-		{
-			ThmMgrs.Append(Comps);
-		}
-	}
-	for (auto ThmMgr : ThmMgrs)
-	{
-		ThmMgr->AppendHeatSources(HeatSources);
-	}
-	SVExt->HeatSources = HeatSources;
-}
-
 void UAcIntegratedSensor::EnableNightVisionBoost()
 {
-	if(!SVExt.IsValid()) return;
+	if(!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
 
 	if(SVExt->GetEnabledSensor() == ESensorType::ThermalVision) DisableThermalVision();
 
@@ -104,17 +64,17 @@ void UAcIntegratedSensor::EnableNightVisionBoost()
 
 void UAcIntegratedSensor::DisableNightVisionBoost()
 {
-	if(!SVExt.IsValid()) return;
+	if(!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
 
 	SVExt->SetEnabledSensor(ESensorType::None);
 }
 
 void UAcIntegratedSensor::EnableThermalVision()
 {
-	if (!SVExt.IsValid()) return;
-	
-	SVExt->SetEnabledSensor(ESensorType::ThermalVision);
-	
+	if (!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
+
+	SetColorStripe(ColorStripe);
+
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
 		UAcThermalManager* ThmMgr = (*ActorIter)->FindComponentByClass<UAcThermalManager>();
@@ -131,11 +91,13 @@ void UAcIntegratedSensor::EnableThermalVision()
 			ThmMgr->EnableThermalRendering();
 		}
 	}
+	
+	SVExt->SetEnabledSensor(ESensorType::ThermalVision);
 }
 
 void UAcIntegratedSensor::DisableThermalVision()
 {
-	if (!SVExt.IsValid()) return;
+	if(!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
 	
 	SVExt->SetEnabledSensor(ESensorType::None);
 	
@@ -152,14 +114,17 @@ void UAcIntegratedSensor::DisableThermalVision()
 void UAcIntegratedSensor::SetColorStripe(UTexture2D* Tex)
 {
 	ColorStripe = Tex;
+	
+	if(!SVExt) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
+	SVExt->ColorStripe = ColorStripe;
 }
 
 void UAcIntegratedSensor::SetTemperatureLowCut(float Low)
 {
-	if (SVExt)
-	{
-		SVExt->LowCut = Low;
-	}
+	if(!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
+	
+	SVExt->LowCut = Low;
+	
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
@@ -173,10 +138,9 @@ void UAcIntegratedSensor::SetTemperatureLowCut(float Low)
 
 void UAcIntegratedSensor::SetTemperatureHighCut(float High)
 {
-	if (SVExt)
-	{
-		SVExt->HighCut = High;
-	}
+	if(!SVExt.IsValid()) SVExt = ASVExtMgr::GetInstance(GetWorld())->GetExt();
+	
+	SVExt->HighCut = High;
 	
 	for (TActorIterator<AActor> ActorIter(GetWorld()); ActorIter; ++ActorIter)
 	{
